@@ -6,7 +6,7 @@ import type { PlayMode } from './PlayScreen';
 export type Tab =
   | 'home' | 'plan' | 'drills' | 'history' | 'session'
   | 'play' | 'progress' | 'model' | 'table' | 'data' | 'sessions'
-  | 'journal' | 'routine' | 'resources' | 'fargo' | 'import' | 'settings';
+  | 'journal' | 'routine' | 'resources' | 'fargo' | 'bowling' | 'import' | 'settings';
 
 export type Group = 'Practice' | 'Play' | 'Analysis' | 'Reference' | 'Data and settings';
 
@@ -19,7 +19,7 @@ export const DESTS: Dest[] = [
   { id: 'history', label: 'Session history', short: 'History', group: 'Practice', tab: 'history', keywords: 'log past recent tallies games practice' },
   { id: 'clock', label: 'Shot clock', short: 'Clock', group: 'Play', tab: 'play', play: 'clock', keywords: 'timer extension match' },
   { id: 'straight', label: 'Straight pool', short: '14.1', group: 'Play', tab: 'play', play: 'straight', keywords: '14.1 continuous match bpi high run score' },
-  { id: 'bowling', label: '10-ball bowling drill', short: 'Bowling', group: 'Practice', tab: 'play', play: 'bowling', keywords: 'bowliards strike spare score game drill run-out' },
+  { id: 'bowling', label: '10-ball bowling drill', short: 'Bowling', group: 'Practice', tab: 'bowling', keywords: 'bowliards strike spare score game drill run-out' },
   { id: 'fargo', label: 'FargoRate rating', short: 'Fargo', group: 'Play', tab: 'fargo', keywords: 'fargo fargorate rating robustness handicap' },
   { id: 'progress', label: 'Progress', short: 'Progress', group: 'Analysis', tab: 'progress', keywords: 'yardstick trend meters segments improvement regression' },
   { id: 'model', label: 'Strengths and shot model', short: 'Model', group: 'Analysis', tab: 'model', keywords: 'forest radar predictor logit expected strengths weaknesses' },
@@ -37,7 +37,7 @@ export const GROUPS: Group[] = ['Practice', 'Play', 'Analysis', 'Reference', 'Da
 // ---------- the bottom bar ----------
 
 export interface Slot { id: string; label: string; tabs: Tab[]; go: Tab }
-const PRACTICE: Slot = { id: 'practice', label: 'Practice', tabs: ['plan', 'drills', 'history', 'session'], go: 'plan' };
+const PRACTICE: Slot = { id: 'practice', label: 'Practice', tabs: ['plan', 'drills', 'history', 'session', 'bowling'], go: 'plan' };
 const PLAY: Slot = { id: 'play', label: 'Play', tabs: ['play'], go: 'play' };
 
 /** Everything the bottom bar can hold. */

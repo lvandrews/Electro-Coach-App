@@ -2,15 +2,18 @@
 
 <h1 align="center">Electro-Coach</h1>
 
-<p align="center">A pool practice coach for Android, iPhone and computer browsers. It runs your practice sessions,
-drills and tallies, scores straight pool matches, keeps a journal, and turns
-<a href="https://railbird.ai/">Railbird</a> shot exports into progress tracking, a practice plan and heat maps.
-No server, no account, no AI needed: everything stays on your device.</p>
+<p align="center">A pool practice coach for Android, iPhone and computer browsers. It runs timed practice
+sessions, logs your drills, keeps your own pre-shot routine one tap away (written your way and
+fully editable), brings a tournament-style shot clock to your matches, scores straight pool,
+and keeps a practice journal. Add <a href="https://railbird.ai/">Railbird</a> shot exports and
+it turns them into progress tracking, a practice plan and heat maps.
+No account, no AI needed: your data stays on your device.</p>
 
 <p align="center"><a href="https://github.com/lvandrews/Electro-Coach-App/releases/latest"><b>Download the latest Android app (APK)</b></a> · <a href="#get-the-app">iPhone and computer</a></p>
 
 <table>
-<tr><td align="center" valign="top" width="33%"><img src="docs/screenshots/01-home.jpg" width="240" alt="Home"><br><sub>Home</sub></td><td align="center" valign="top" width="33%"><img src="docs/screenshots/09-progress.jpg" width="240" alt="Progress"><br><sub>Progress</sub></td><td align="center" valign="top" width="33%"><img src="docs/screenshots/11-table.jpg" width="240" alt="Table heat map"><br><sub>Table heat map</sub></td></tr>
+<tr><td align="center" valign="top" width="33%"><img src="docs/screenshots/01-home.jpg" width="240" alt="Home"><br><sub>Home</sub></td><td align="center" valign="top" width="33%"><img src="docs/screenshots/13-shot-clock.jpg" width="240" alt="Shot clock"><br><sub>Shot clock</sub></td><td align="center" valign="top" width="33%"><img src="docs/screenshots/17-routine.jpg" width="240" alt="Your pre-shot routine"><br><sub>Your pre-shot routine</sub></td></tr>
+<tr><td align="center" valign="top" width="33%"><img src="docs/screenshots/09-progress.jpg" width="240" alt="Progress"><br><sub>Progress</sub></td><td align="center" valign="top" width="33%"><img src="docs/screenshots/11-table.jpg" width="240" alt="Table heat map"><br><sub>Table heat map</sub></td><td align="center" valign="top" width="33%"><img src="docs/screenshots/03-plan.jpg" width="240" alt="Practice plan"><br><sub>Practice plan</sub></td></tr>
 </table>
 
 ## Get the app
@@ -45,7 +48,7 @@ owners.
 
 - [Getting around](#getting-around)
 - [Practice](#practice): plan, timed sessions, drills and tallies, history
-- [Play](#play): shot clock, straight pool, and the scorer for the 10-ball bowling drill
+- [Play](#play): shot clock, straight pool, FargoRate
 - [Analysis](#analysis): progress, strengths and the shot model, heat maps, distributions
 - [Reference](#reference): pre-shot routine, journal and sharing with a coach or chatbot
 - [Data and settings](#data-and-settings): import, cleaning rules, backup, appearance
@@ -67,10 +70,10 @@ Plan, Session, Drills and History. With large system text the bottom bar scrolls
 | Group | Pages |
 |---|---|
 | — | **Home**: anything in progress (session, tally, game, match) with Resume or Discard; the next session with Start; the last 30 days against your yardstick, your top target, your best shot, speed sweet spot, FargoRate, bowling-drill and straight-pool numbers; the last few things you did; a quick journal entry; last import and backup |
-| Practice | **Practice plan and session timer** · **Drills** · **Session history** |
-| Play | **Shot clock** · **Straight pool** · **Bowling drill** (the 10-ball bowling drill's scorer) |
+| Practice | **Practice plan and session timer** · **Drills** (including the 10-ball bowling drill and its scorer) · **Session history** |
+| Play | **Shot clock** · **Straight pool** · **FargoRate rating** |
 | Analysis | **Progress** · **Strengths and shot model** · **Table heat maps** · **Distributions** · **Railbird sessions** |
-| Reference | **Pre-shot routine** · **Journal** |
+| Reference | **Pre-shot routine** · **Journal** · **Resources** |
 | Data and settings | **Import Railbird data** · **Settings and backup** |
 
 ## Practice
@@ -107,6 +110,14 @@ take one entry per rack (ran out, or the ball where it ended and why: missed, or
 D2 and the mirror set take a tap per shot. An empty tally is dropped when you leave it, and
 any tally can be discarded.
 
+**The 10-ball bowling drill** has its own section in the drill library: a run-out drill that
+takes full racks, scored like bowling, so set aside time to finish all ten frames. Its scorer
+opens from the drill page.
+
+<table>
+<tr><td align="center" valign="top" width="33%"><img src="docs/screenshots/14-bowling.jpg" width="240" alt="10-ball bowling drill scorer"><br><sub>10-ball bowling drill scorer</sub></td></tr>
+</table>
+
 <details>
 <summary><b>More on drills, tallies and the capture check</b></summary>
 
@@ -130,6 +141,11 @@ any tally can be discarded.
 - Tally on the laptop (open `Electro-Coach.html` in Chrome or Edge) or a spare Android
   device while the phone runs Railbird. Then **Save tallies as a file** or **Copy tallies as
   text**, and on the phone **Import a tally file** or **Paste tallies**. Re-importing is safe.
+- **10-ball bowling drill** (run-out drill, own section in the library): scored like bowling. A frame is a rack of ten with two innings (300
+  perfect). Frame-by-frame scorer, score sheet, history chart, strike/spare rates, past games
+  entered one at a time or pasted as a list (date + score per line). It is also a drill in the
+  library and a Progress drill meter, and the practice plan's run-out block points to it. A
+  "How to score" section explains entering balls, X and /.
 - **Capture check**: after you import the Railbird export, each tally shows how many of your
   tapped makes Railbird recorded, per side for D2 and the mirror set. Matching is by drill
   (tag, legacy alias or built-in mode) and calendar date.
@@ -148,7 +164,7 @@ games, matches and timed practice sessions.
 ## Play
 
 <table>
-<tr><td align="center" valign="top" width="33%"><img src="docs/screenshots/13-shot-clock.jpg" width="240" alt="Shot clock"><br><sub>Shot clock</sub></td><td align="center" valign="top" width="33%"><img src="docs/screenshots/15-straight-pool.jpg" width="240" alt="Straight pool (14.1)"><br><sub>Straight pool (14.1)</sub></td><td align="center" valign="top" width="33%"><img src="docs/screenshots/14-bowling.jpg" width="240" alt="10-ball bowling drill"><br><sub>10-ball bowling drill</sub></td></tr>
+<tr><td align="center" valign="top" width="33%"><img src="docs/screenshots/13-shot-clock.jpg" width="240" alt="Shot clock"><br><sub>Shot clock</sub></td><td align="center" valign="top" width="33%"><img src="docs/screenshots/15-straight-pool.jpg" width="240" alt="Straight pool (14.1)"><br><sub>Straight pool (14.1)</sub></td></tr>
 </table>
 
 - **Shot clock**: tap the clock when the balls stop. Shot time (default 30 s), a longer first
@@ -172,11 +188,6 @@ games, matches and timed practice sessions.
   has no published API; the lookup uses the search endpoint the open-source
   [fargo CLI](https://github.com/rgstephens/fargo-skill) uses, so it may break if FargoRate
   changes it. Manual entry always works.
-- **10-ball bowling drill**: a run-out drill scored like bowling. A frame is a rack of ten with two innings (300
-  perfect). Frame-by-frame scorer, score sheet, history chart, strike/spare rates, past games
-  entered one at a time or pasted as a list (date + score per line). It is also a drill in the
-  library and a Progress drill meter, and the practice plan's run-out block points to it. A
-  "How to score" section explains entering balls, X and /.
 - Stored in the `games` object store (IndexedDB v3) and in backups.
 
 ## Analysis
@@ -243,6 +254,14 @@ games, matches and timed practice sessions.
 - **Appearance** (per device): theme (match the phone, dark, light), chart color,
   strength/weakness colors (including a color-blind-safe set), heat-map scale (green→red or
   color-blind-safe viridis) and the four bottom-bar slots.
+- **Anonymous usage counts** (on by default, with a note on first launch; switch off in
+  Settings). To see which parts of the app get used, it counts screens opened (once each per
+  launch) and features used: an import, a timed session, a drill tally, a game, the shot clock,
+  a routine edit and the like, with the app version, the kind of device and the language setting.
+  The counts go to [Aptabase](https://aptabase.com/), a privacy-first analytics service, which
+  works out the country from the connection and doesn't store the address. Nothing you enter is
+  ever sent: no shots, scores, notes, routine text, names, venues or FargoRate ID, and there is no
+  account, device ID or install ID. The full list is in `src/engine/usage.ts`.
 
 ## How the numbers work
 
@@ -428,7 +447,8 @@ cd android && ./gradlew assembleDebug
   plan (`plan.ts`), timed sessions (`session.ts`), games (`games.ts`), the coach summary
   (`coach.ts`), the pre-shot routine text and its live numbers (`routine.ts`, `facts.ts`), the
   speed profile (`speed.ts`), straight pool scoresheets and opponents (`scoresheet.ts`, with a
-  small PDF writer in `pdf.ts`), FargoRate (`fargo.ts`) and resource links (`resources.ts`).
+  small PDF writer in `pdf.ts`), FargoRate (`fargo.ts`), resource links (`resources.ts`) and the anonymous usage events (`usage.ts`;
+  sending is in `src/usage.ts`).
 - `src/store/db.ts`: IndexedDB storage, backup and restore.
 - `src/ui/`: Preact screens; charts are hand-written SVG. `nav.ts` lists every page and the
   bottom-bar choices; `notify.ts` schedules end-of-block notifications.
@@ -442,8 +462,8 @@ cd android && ./gradlew assembleDebug
 The five planned build steps are done (import and cleaning, the shot model, heat maps,
 progress, the practice plan), along with drills and tallies, Play, Home, the drawer, the
 journal, the pre-shot routine and timed sessions; then the learning stage, the speed profile,
-your numbers in the routine, straight pool opponents and scoresheets, FargoRate, Resources and
-the iPhone web version.
+your numbers in the routine, straight pool opponents and scoresheets, FargoRate, Resources,
+the iPhone web version, Android share-to-import, practice reminders and anonymous usage counts.
 
 Next ideas: a native iPhone build (TestFlight), a Double L variant, an importer for past 10-ball bowling drill scores, Railbird
 sessions matched to timed-session blocks, and optional cloud sync between devices.

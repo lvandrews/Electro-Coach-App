@@ -18,6 +18,7 @@ import { TableScreen } from './ui/TableScreen';
 import { ProgressScreen } from './ui/ProgressScreen';
 import { PlanScreen } from './ui/PlanScreen';
 import { PlayScreen, type PlayMode } from './ui/PlayScreen';
+import { BowlingScreen } from './ui/BowlingScreen';
 import type { Game } from './engine/games';
 import { DEFAULT_PLAN, type PlanSettings } from './engine/plan';
 import { fitBaseline, latestStart, type Baseline, type Note } from './engine/progress';
@@ -40,6 +41,12 @@ import { EMPTY_FARGO, type FargoData } from './engine/fargo';
 import { STARTER_RESOURCES, type ResourceGroup } from './engine/resources';
 import { listenForSharedFiles, type IncomingFile } from './incoming';
 import { onReminderPrefs, useReminders } from './ui/reminders';
+import { startUsage, track, trackOnce, trackScreen } from './usage';
+import { drillLabel, shotBand } from './engine/usage';
+import { UsageNotice } from './ui/Usage';
+import { bowlingCard } from './engine/games';
+
+const BUILTIN_IDS = new Set(BUILTIN_DRILLS.map(d => d.id));
 
 export type { Tab } from './ui/nav';
 
@@ -49,6 +56,22 @@ export interface AppData {
   exclusions: ReturnType<typeof evaluate>;
   rules: RuleConfig;
   imports: ImportReport[];
+}
+
+/** Usage counts for games: started, and finished (a full bowling card, an ended match or session). */
+function trackGame(before: Game | undefined, g: Game) {
+  if (g.kind === 'bowling') {
+    if (g.source !== 'scored') { if (!before) trackOnce('bowling_games_added'); return; }   // past games, added in a batch
+    const done = (x?: Game) => !!x && x.kind === 'bowling' && !!x.frames && bowlingCard(x.frames).complete;
+    if (!before) track('bowling_game_started');
+    if (done(g) && !done(before)) track('bowling_game_finished');
+  } else if (g.kind === 'straight-pool') {
+    if (!before) track('straight_pool_started');
+    if (g.ended && !(before && 'ended' in before && before.ended)) track('straight_pool_finished');
+  } else if (g.kind === 'practice') {
+    if (!before) track('session_started', { minutes: g.minutes });
+    if (g.ended && !(before && 'ended' in before && before.ended)) track('session_finished');
+  }
 }
 
 export function App() {
@@ -79,7 +102,7 @@ export function App() {
   const [games, setGames] = useState<Game[]>([]);
   const [fargo, setFargo] = useState<FargoData>(EMPTY_FARGO);
   const [resources, setResources] = useState<ResourceGroup[] | null>(null);
-  const [playMode, setPlayMode] = useState<PlayMode>(() => { try { return (localStorage.getItem('ec-play') as PlayMode) || 'clock'; } catch { return 'clock'; } });
+  const [playMode, setPlayMode] = useState<PlayMode>(() => { try { return localStorage.getItem('ec-play') === 'straight' ? 'straight' : 'clock'; } catch { return 'clock'; } });
 
   const reload = async () => {
     const [s, r, i, t, l, c, dn, bl, nt, pn, pl, gm, rt, lb, fg, rs] = await Promise.all([
@@ -93,7 +116,8 @@ export function App() {
     setActiveTallyId(open?.id ?? null);
     setLoaded(true);
   };
-  useEffect(() => { reload().catch(e => { setError(String(e)); setLoaded(true); }); }, []);
+  useEffect(() => { reload().catch(e => { setError(String(e)); setLoaded(true); }); startUsage(); }, []);
+  useEffect(() => { trackScreen(tab); }, [tab]);
 
   // Drill library = built-ins + custom drills, with any saved layouts applied.
   const drills = useMemo<DrillDef[]>(() => [...BUILTIN_DRILLS, ...custom].map(d => (layouts[d.id] ? { ...d, diagram: layouts[d.id] } : d)), [custom, layouts]);
@@ -130,6 +154,7 @@ export function App() {
       setShots(current);
       setImports(await store.loadImports());
       setLastReport(report);
+      if (report && !report.refused) track('csv_imported', { shots: shotBand(report.newShots + report.updatedShots) });
     } catch (e) {
       setError(`Import failed: ${e instanceof Error ? e.message : String(e)}`);
     } finally { setBusy(null); }
@@ -158,6 +183,7 @@ export function App() {
     const t: TallySession = { id: newTallyId(), drillId: d.id, drillName: d.name, device, started: now, updated: now, events: [] };
     await store.saveTally(t);
     setTallies(ts => [t, ...ts]); setActiveTallyId(t.id); setDrillOpen(d.id); setTallyOpen(true); setTab('drills');
+    track('tally_started', { drill: drillLabel(d.id, BUILTIN_IDS) });
     return t.id;
   }
   async function discardTally(id: string) {
@@ -178,6 +204,7 @@ export function App() {
   async function finishTally(t: TallySession) {
     if (!t.events.length) { await discardTally(t.id); return; }
     await changeTally(t); setActiveTallyId(null); setTallyOpen(false);
+    track('tally_finished', { drill: drillLabel(t.drillId, BUILTIN_IDS) });
   }
   async function deleteTally(id: string) {
     await store.deleteTally(id); setTallies(ts => ts.filter(x => x.id !== id));
@@ -193,6 +220,7 @@ export function App() {
     setLayouts(next); await store.saveLayouts(next);
   }
   async function saveCustom(d: DrillDef) {
+    if (!custom.some(x => x.id === d.id)) track('drill_created');
     const next = custom.some(x => x.id === d.id) ? custom.map(x => (x.id === d.id ? d : x)) : [...custom, d];
     setCustom(next); await store.saveCustomDrills(next);
   }
@@ -202,15 +230,15 @@ export function App() {
   }
   async function renameDevice(n: string) { setDevice(n); await store.saveDeviceName(n); }
   async function updateBaseline(b: Baseline) { setBaseline(b); await store.saveBaseline(b); }
-  async function updateNotes(n: Note[]) { setNotes(n); await store.saveNotes(n); }
+  async function updateNotes(n: Note[]) { if (n.length > notes.length) track('journal_note_added'); setNotes(n); await store.saveNotes(n); }
   async function updatePins(p: string[]) { setPins(p); await store.savePins(p); }
   async function updatePlan(p: PlanSettings) { setPlan(p); await store.savePlan(p); }
-  async function saveGame(g: Game) { setGames(gs => [g, ...gs.filter(x => x.id !== g.id)]); await store.saveGame(g); }
+  async function saveGame(g: Game) { trackGame(games.find(x => x.id === g.id), g); setGames(gs => [g, ...gs.filter(x => x.id !== g.id)]); await store.saveGame(g); }
   async function deleteGame(id: string) { setGames(gs => gs.filter(x => x.id !== id)); await store.deleteGame(id); }
   const pickPlay = (m: PlayMode) => { setPlayMode(m); try { localStorage.setItem('ec-play', m); } catch { /* ignore */ } };
   const openScorer = (m: PlayMode) => { pickPlay(m); setTab('play'); window.scrollTo(0, 0); };
   const openDrill = (id: string) => { setDrillOpen(id); setTallyOpen(false); setTab('drills'); window.scrollTo(0, 0); };
-  async function saveRoutine(r: RoutineEdits | null) { setRoutine(r); await store.saveRoutine(r); }
+  async function saveRoutine(r: RoutineEdits | null) { setRoutine(r); await store.saveRoutine(r); track('routine_edited'); }
   async function saveFargo(f: FargoData) { setFargo(f); await store.saveFargo(f); }
   async function saveResources(r: ResourceGroup[] | null) { setResources(r); await store.saveResources(r); }
   async function addNote(text: string) { await updateNotes([...notes, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, date: localYmd(new Date()), kind: 'other', text }]); }
@@ -229,7 +257,7 @@ export function App() {
   function openActivity(a: Activity) {
     if (a.kind === 'railbird') go('sessions');
     else if (a.kind === 'tally') { if (a.live) { setDrillOpen(a.ref); setTallyOpen(true); setTab('drills'); } else openDrill(a.ref); }
-    else if (a.kind === 'bowling') openScorer('bowling');
+    else if (a.kind === 'bowling') go('bowling');
     else if (a.kind === 'straight') openScorer('straight');
     else go(a.live ? 'session' : 'history');
   }
@@ -260,7 +288,7 @@ export function App() {
     if (t.clientX - st.x > 60 && Math.abs(t.clientY - st.y) < 50) setDrawer(true);
   };
   const tallyAge = activeTally ? (Date.now() - Date.parse(activeTally.started)) / 3600000 : 0;
-  const practiceTabs: Tab[] = ['plan', 'drills', 'history', 'session'];
+  const practiceTabs: Tab[] = ['plan', 'drills', 'history', 'session', 'bowling'];
 
   return (
     <div class="app" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
@@ -284,6 +312,7 @@ export function App() {
       </header>
 
       <main>
+        <UsageNotice />
         {error && <div class="notice bad" role="alert">{error}</div>}
         {status && tab !== 'session' && tab !== 'home' && (
           <button class={`session-banner ${status.due ? 'due' : ''}`} onClick={() => go('session')}>{status.text}</button>
@@ -302,7 +331,7 @@ export function App() {
           <div class="chips practice-chips" role="group" aria-label="Practice">
             <button aria-pressed={tab === 'plan'} onClick={() => go('plan')}>Plan</button>
             {session && <button aria-pressed={tab === 'session'} onClick={() => go('session')}>Session</button>}
-            <button aria-pressed={tab === 'drills'} onClick={() => go('drills')}>Drills</button>
+            <button aria-pressed={tab === 'drills' || tab === 'bowling'} onClick={() => go('drills')}>Drills</button>
             <button aria-pressed={tab === 'history'} onClick={() => go('history')}>History</button>
           </div>
         )}
@@ -317,13 +346,13 @@ export function App() {
           : tab === 'session' ? <SessionScreen data={data} baseline={baseline} plan={plan} drills={drills} tallies={tallies} games={games} session={session} device={device}
               onSave={g => saveGame(g)} onDelete={deleteGame} onStartTally={startTally}
               onOpenTally={() => { if (activeTally) { setTab('drills'); setDrillOpen(activeTally.drillId); setTallyOpen(true); } }}
-              onEndTally={endTally} onOpenScorer={() => openScorer('bowling')} onAddNote={addNote} onDone={() => go('history')} onGoPlan={() => go('plan')} />
+              onEndTally={endTally} onOpenScorer={() => go('bowling')} onAddNote={addNote} onDone={() => go('history')} onGoPlan={() => go('plan')} />
           : tab === 'journal' ? <JournalScreen data={data} notes={notes} tallies={tallies} games={games} drills={drills} baseline={baseline} onNotes={updateNotes} focus={focus} />
           : tab === 'routine' ? <RoutineScreen data={data} edits={routine} onEdits={saveRoutine} onGo={go} onGoFocus={goFocus} focus={focus} />
           : tab === 'drills' ? <DrillsScreen data={data} drills={drills} tallies={tallies} device={device} activeTallyId={activeTallyId}
               onStartTally={startTally} onResumeTally={() => setTallyOpen(true)} onSaveLayout={saveLayout} onSaveCustom={saveCustom}
               onDeleteCustom={deleteCustom} onDeleteTally={deleteTally} onImportTallies={importTallies} onGo={go}
-              openId={drillOpen} onOpen={setDrillOpen} onOpenScorer={k => openScorer(k)} />
+              openId={drillOpen} onOpen={setDrillOpen} onOpenScorer={() => go('bowling')} />
           : tab === 'fargo' ? <FargoScreen fargo={fargo} onFargo={saveFargo} notes={notes} tallies={tallies} />
           : tab === 'resources' ? <ResourcesScreen groups={resources} onGroups={saveResources} focus={focus} />
           : tab === 'import' ? <ImportScreen data={data} busy={busy} lastReport={lastReport} capture={capture} onFiles={importFiles} onGo={go} />
@@ -333,6 +362,11 @@ export function App() {
           : tab === 'table' ? <TableScreen data={data} onGo={go} />
           : tab === 'progress' ? <ProgressScreen data={data} drills={drills} tallies={tallies} games={games} baseline={baseline} notes={notes} pins={pins}
               onBaseline={updateBaseline} onNotes={updateNotes} onPins={updatePins} onGo={go} />
+          : tab === 'bowling' ? <section>
+              <button class="btn btn-s" onClick={() => openDrill('bowling-10')}>The drill: set-up and rules</button>
+              <h2 style={{ marginTop: '10px' }}>10-ball bowling drill</h2>
+              <BowlingScreen games={games} device={device} onSave={saveGame} onDelete={deleteGame} />
+            </section>
           : tab === 'play' ? <PlayScreen mode={playMode} onMode={pickPlay} games={games} device={device} onSaveGame={saveGame} onDeleteGame={deleteGame} />
           : tab === 'plan' ? <PlanScreen data={data} drills={drills} baseline={baseline} pins={pins} plan={plan}
               onBaseline={updateBaseline} onPlan={updatePlan} onPins={updatePins} onOpenDrill={openDrill} onGo={go} />

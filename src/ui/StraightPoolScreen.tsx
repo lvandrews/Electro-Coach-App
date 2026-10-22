@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'preact/hooks';
+import { track } from '../usage';
 import { bpi, newGameId, playedText, spBall, spBreakChoice, spEnd, spState, spUndo, type Game, type Played, type StraightPoolMatch } from '../engine/games';
 import { opponentKey, opponents, scoresheetPdf, scoresheetText, type OpponentRecord } from '../engine/scoresheet';
 import { cleanPlayed, playedHistory, PlayedLine, TableFields } from './TableFields';
@@ -227,7 +228,7 @@ function ShareSheet({ m }: { m: StraightPoolMatch }) {
     <div style={{ marginTop: '12px' }}>
       <div class="panel-title">Share the scoresheet</div>
       <div class="row" style={{ gap: '8px' }}>
-        <button class="btn" onClick={async () => { try { await shareFile(`${base}.pdf`, scoresheetPdf(m), 'application/pdf', 'Straight pool scoresheet'); } catch (e) { setMsg(`Could not share the PDF: ${e instanceof Error ? e.message : String(e)}`); } }}>PDF</button>
+        <button class="btn" onClick={async () => { try { track('scoresheet_pdf'); await shareFile(`${base}.pdf`, scoresheetPdf(m), 'application/pdf', 'Straight pool scoresheet'); } catch (e) { setMsg(`Could not share the PDF: ${e instanceof Error ? e.message : String(e)}`); } }}>PDF</button>
         <button class="btn" onClick={async () => { const r = await shareText('Straight pool scoresheet', scoresheetText(m)); setMsg(r === 'copied' ? 'Copied: paste it into an email or message.' : r === 'failed' ? 'Could not share or copy the text.' : null); }}>Text (email, messages)</button>
       </div>
       <p class="small muted" style={{ margin: '6px 0 0' }}>Date, players, race, final score, innings, balls per inning, high runs, fouls, and every inning with the score after it.</p>

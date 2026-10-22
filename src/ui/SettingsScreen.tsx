@@ -7,6 +7,8 @@ import { loadReminderPrefs, saveReminderPrefs } from './reminders';
 import type { ReminderPrefs } from '../engine/reminders';
 import { int, localYmd } from './format';
 import { SLOT_CHOICES, DEFAULT_BAR } from './nav';
+import { track } from '../usage';
+import { UsageSettings } from './Usage';
 import { setPrefs, usePrefs, type DataPalette, type HeatPalette, type ThemePref, type TierPalette } from './prefs';
 
 const THRESHOLDS: Partial<Record<RuleId, { key: keyof RuleConfig; unit: string; step: number }>> = {
@@ -36,6 +38,7 @@ export function SettingsScreen({ data, device, onDevice, onRules, onRestored, on
     const b = await store.makeBackup();
     await saveTextFile(`electro-coach-backup-${localYmd(new Date())}.json`, JSON.stringify(b));
     const at = new Date().toISOString(); await store.saveLastBackup(at); onBackedUp(at);
+    track('backup_made');
     setMsg(`Backup made: ${int(b.shots.length)} shots, ${int(b.imports.length)} import reports, your rule settings.`);
   }
   async function pickRestore(f: File) {
@@ -58,11 +61,12 @@ export function SettingsScreen({ data, device, onDevice, onRules, onRestored, on
   return (
     <section>
       <h2>Settings</h2>
-      <p class="lede" style={{ marginBottom: '10px' }}>Appearance, reminders, cleaning rules, this device's name, backups.</p>
+      <p class="lede" style={{ marginBottom: '10px' }}>Appearance, reminders, usage counts, cleaning rules, this device's name, backups.</p>
       {msg && <div class="notice good" role="status">{msg}</div>}
 
       <Appearance />
       <Reminders />
+      <UsageSettings />
 
       <div class="card">
         <h3>Cleaning rules</h3>
@@ -159,7 +163,10 @@ function Choice<T extends string>({ label, value, options, onPick }: { label: st
 
 function Reminders() {
   const [p, setP] = useState(loadReminderPrefs());
-  const set = (patch: Partial<ReminderPrefs>) => { const next = { ...p, ...patch }; setP(next); saveReminderPrefs(next); };
+  const set = (patch: Partial<ReminderPrefs>) => {
+    const next = { ...p, ...patch }; setP(next); saveReminderPrefs(next);
+    if ('nudges' in patch || 'recap' in patch) track('reminders_changed', { nudges: next.nudges, recap: next.recap });
+  };
   const hours = Array.from({ length: 24 }, (_, h) => h);
   const label = (h: number) => new Date(2026, 0, 1, h).toLocaleTimeString([], { hour: 'numeric' });
   return (

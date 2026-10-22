@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
+import { track } from '../usage';
 import type { AppData } from '../app';
 import type { DrillDef } from '../engine/drills';
 import type { TallySession } from '../engine/tally';
@@ -133,7 +134,7 @@ function Share(p: Props) {
         <div class="row" style={{ gap: '8px', marginTop: '8px' }}>
           <button class="btn primary" onClick={async () => { const r = await shareText('Pool practice summary', text); setMsg(r === 'copied' ? 'Copied: paste it into your chatbot.' : r === 'shared' ? null : 'Could not share; select the text and copy it.'); }}>Share…</button>
           <button class="btn" onClick={async () => { try { await navigator.clipboard.writeText(text); setMsg('Copied: paste it into your chatbot.'); } catch { setMsg('Could not copy; select the text instead.'); } }}>Copy</button>
-          <button class="btn" onClick={() => saveTextFile(`electro-coach-shots-${localYmd(new Date())}.csv`, shotsCsv(rowsFor(p.data), o.days), 'text/csv')}>Save shots as CSV</button>
+          <button class="btn" onClick={() => { track('shots_csv_saved'); return saveTextFile(`electro-coach-shots-${localYmd(new Date())}.csv`, shotsCsv(rowsFor(p.data), o.days), 'text/csv'); }}>Save shots as CSV</button>
         </div>
         <p class="small muted" style={{ margin: '6px 0 0' }}>{text.length.toLocaleString()} characters. The CSV holds every kept shot in the period, for a chatbot that reads files.</p>
         {msg && <div class="notice good" style={{ marginTop: '8px' }}>{msg}</div>}

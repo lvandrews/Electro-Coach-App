@@ -1,11 +1,10 @@
 import type { Game } from '../engine/games';
 import { ShotClock } from './ShotClock';
-import { BowlingScreen } from './BowlingScreen';
 import { StraightPoolScreen } from './StraightPoolScreen';
 
-export type PlayMode = 'clock' | 'straight' | 'bowling';
+export type PlayMode = 'clock' | 'straight';
 const MODES: { id: PlayMode; label: string }[] = [
-  { id: 'clock', label: 'Shot clock' }, { id: 'straight', label: 'Straight pool' }, { id: 'bowling', label: 'Bowling drill' },
+  { id: 'clock', label: 'Shot clock' }, { id: 'straight', label: 'Straight pool' },
 ];
 
 type Props = { mode: PlayMode; onMode: (m: PlayMode) => void; games: Game[]; device: string; onSaveGame: (g: Game) => Promise<void>; onDeleteGame: (id: string) => Promise<void> };
@@ -19,7 +18,6 @@ export function PlayScreen({ mode, onMode, games, device, onSaveGame, onDeleteGa
       </div>
       {mode === 'clock' && <ShotClock />}
       {mode === 'straight' && <StraightPoolScreen games={games} device={device} onSave={onSaveGame} onDelete={onDeleteGame} />}
-      {mode === 'bowling' && <BowlingScreen games={games} device={device} onSave={onSaveGame} onDelete={onDeleteGame} />}
     </section>
   );
 }

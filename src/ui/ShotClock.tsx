@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { trackOnce } from '../usage';
 import { setVolume, sounds, unlockAudio } from './sound';
 import { useWakeLock } from './TallyScreen';
 
@@ -59,6 +60,7 @@ export function ShotClock() {
     setDuration(secs); endAt.current = performance.now() + secs * 1000; lastSec.current = secs;
     setLeft(secs * 1000); setExpired(false); setRunning(true); setRackStart(false);
     sounds.start();
+    trackOnce('shot_clock_started');
   }
   function pause() {
     unlockAudio();

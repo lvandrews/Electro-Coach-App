@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'preact/hooks';
+import { track } from '../usage';
 import { addEntry, changeOver, ESTABLISHED, FARGO_API, FARGO_SITE, latestEntry, parseFargo, type FargoData, type FargoPlayer } from '../engine/fargo';
 import { timelineNotes, type Note } from '../engine/progress';
 import type { TallySession } from '../engine/tally';
@@ -12,6 +13,7 @@ type Props = { fargo: FargoData; onFargo: (f: FargoData) => Promise<void>; notes
 const ymdMs = (ymd: string) => Date.parse(`${ymd}T12:00:00`);
 
 async function search(q: string): Promise<FargoPlayer[]> {
+  track('fargo_lookup');
   const enc = encodeURIComponent(q.trim());
   return parseFargo(await getJson(`${FARGO_API}${enc}`, `/fargo-api/indexsearch?q=${enc}`));
 }

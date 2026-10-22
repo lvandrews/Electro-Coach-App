@@ -26,10 +26,10 @@ export interface DrillsProps {
   onGo: (t: Tab) => void;
   openId: string | null;
   onOpen: (id: string | null) => void;
-  onOpenScorer: (k: 'bowling') => void;
+  onOpenScorer: () => void;
 }
 
-const ORDER: DrillCategory[] = ['transitions', 'reps', 'calibration'];
+const ORDER: DrillCategory[] = ['transitions', 'runout', 'reps', 'calibration'];
 
 interface DrillSession { sessionId: number; start: string; shots: number; kept: number; makes: number }
 
@@ -185,7 +185,7 @@ function DrillDetail(p: DetailProps) {
 
           {d.custom && <CustomFields {...p} />}
 
-          {d.scorer && <div style={{ marginTop: '14px' }}><button class="btn primary" onClick={() => p.onOpenScorer(d.scorer!)}>Open the scorer</button></div>}
+          {d.scorer && <div style={{ marginTop: '14px' }}><button class="btn primary" onClick={() => p.onOpenScorer()}>Open the scorer</button></div>}
           {d.counters !== 'none' && (
             <div style={{ marginTop: '14px' }}>
               {p.activeTallyId && p.tallies.find(t => t.id === p.activeTallyId)?.drillId === d.id

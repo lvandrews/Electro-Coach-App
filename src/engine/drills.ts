@@ -3,7 +3,7 @@ import { POCKETS, SPOTS, TABLE, along, cueBallPath, cutAngle, ghostBall, pocketR
 
 // ---------- types ----------
 
-export type DrillCategory = 'transitions' | 'reps' | 'calibration';
+export type DrillCategory = 'transitions' | 'runout' | 'reps' | 'calibration';
 export type CounterLevel = 'none' | 'completion' | 'diagnostic';
 export type DiagKey = 'make' | 'thick' | 'thin' | 'rail' | 'pocket';
 export type Side = 'L' | 'R';
@@ -43,7 +43,7 @@ export interface DrillDef {
   ballsPerRack?: number;           // completion drills
   target?: { text: string; perCell?: number; minimum?: number; unit?: 'shots' | 'misses' | 'racks' | 'makes' };
   custom?: boolean;
-  scorer?: 'bowling';              // scored in the Play tab instead of tapped
+  scorer?: 'bowling';              // scored with its own scorer instead of tapped
   learning?: string;               // how to start out on a hard drill (shown above the set-up)
 }
 
@@ -231,7 +231,7 @@ const DRILL_DEFS: DrillDef[] = [
     target: { text: 'Log every rack: completed, or the ball where the run ended.', unit: 'racks' },
   },
   {
-    id: 'bowling-10', name: '10-ball bowling', category: 'transitions', tags: [{ value: 'ec-10ball-bowling' }],
+    id: 'bowling-10', name: '10-ball bowling', category: 'runout', tags: [{ value: 'ec-10ball-bowling' }],
     aliases: ['10 ball bowling', '10-ball bowling', 'bowliards'], diagram: bowling, counters: 'none', scorer: 'bowling',
     setup: [
       'Rack ten balls and break. Each frame is one rack, with two innings to clear it.',
@@ -239,7 +239,7 @@ const DRILL_DEFS: DrillDef[] = [
       'Play your usual rules for the break and ball in hand; the scorer only needs the balls you ran in each inning.',
       'An offensive drill: it measures how far you get through a rack, so run-out planning and position decide it.',
     ],
-    target: { text: 'Score games in the Play tab. Watch the average of your last five.', unit: 'racks' },
+    target: { text: 'Score each game with the scorer (Open the scorer below). Watch the average of your last five.', unit: 'racks' },
   },
   {
     id: 'xdrill', name: 'X-drill', category: 'reps', tags: [], railbirdBuiltIn: 'drillx-shot', aliases: ['drillx-shot', 'drill x-shot', 'x-drill'],
@@ -333,10 +333,11 @@ export function layoutSnippet(drillId: string, spec: DiagramSpec): string {
 }
 
 export const CATEGORY_LABEL: Record<DrillCategory, string> = {
-  transitions: 'Transitions', reps: 'Reps', calibration: 'Calibration',
+  transitions: 'Transitions', runout: 'Run-out drill', reps: 'Reps', calibration: 'Calibration',
 };
 export const CATEGORY_HINT: Record<DrillCategory, string> = {
-  transitions: 'Pattern and run-out drills. Measured by completion.',
+  transitions: 'Pattern drills: ball-to-ball position. Measured by completion.',
+  runout: 'Full racks, scored like bowling. Set aside time to finish all ten frames.',
   reps: 'Fixed single-shot drills. Measured by make % from Railbird.',
   calibration: 'Tests that pin down how Railbird reads spin and where your misses go.',
 };
