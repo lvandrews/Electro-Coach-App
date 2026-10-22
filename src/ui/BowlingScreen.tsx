@@ -16,10 +16,10 @@ export function BowlingScreen({ games, device, onSave, onDelete }: Props) {
 
   async function newGame() {
     const now = new Date().toISOString();
-    // Start from where the last scored game was played; a 7-ft table if there's none yet.
+    // Start from the venue and table of the last scored game (so a change sticks); a 9-ft table the first time.
     const last = [...bowling].reverse().find(g => g.source === 'scored' && (g.venue || g.table));
     const g: BowlingGame = { id: newGameId(), kind: 'bowling', date: now, updated: now, frames: [], source: 'scored', device,
-      venue: last?.venue, table: last?.table ?? { size: '7ft' } };
+      venue: last?.venue, table: last?.table ?? { size: '9ft' } };
     await onSave(g); setScoringId(g.id);
   }
 

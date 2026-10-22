@@ -38,6 +38,8 @@ import { FargoScreen } from './ui/FargoScreen';
 import { ResourcesScreen } from './ui/ResourcesScreen';
 import { EMPTY_FARGO, type FargoData } from './engine/fargo';
 import { STARTER_RESOURCES, type ResourceGroup } from './engine/resources';
+import { listenForSharedFiles, type IncomingFile } from './incoming';
+import { onReminderPrefs, useReminders } from './ui/reminders';
 
 export type { Tab } from './ui/nav';
 
@@ -133,6 +135,18 @@ export function App() {
     } finally { setBusy(null); }
   }
 
+  // A Railbird CSV shared to the app (Android): import it once the stored data has loaded.
+  const importRef = useRef(importFiles); importRef.current = importFiles;
+  const [shared, setShared] = useState<IncomingFile | null>(null);
+  useEffect(() => listenForSharedFiles(f => setShared(f)), []);
+  useEffect(() => {
+    if (!loaded || !shared) return;
+    const f = shared; setShared(null);
+    setTab('import'); setDrawer(false); setTallyOpen(false);
+    if (f.error || !f.text) { setError(f.error ?? 'The shared file was empty.'); return; }
+    importRef.current([new File([f.text], f.name || 'shared.csv', { type: 'text/csv' })]);
+  }, [loaded, shared]);
+
   async function updateRules(r: RuleConfig) { setRules(r); await store.saveRules(r); }
 
   // ----- tallies -----
@@ -202,6 +216,10 @@ export function App() {
   async function addNote(text: string) { await updateNotes([...notes, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, date: localYmd(new Date()), kind: 'other', text }]); }
   const session = (games.find(g => g.kind === 'practice' && !g.ended) as PracticeSession | undefined) ?? null;
   useSessionAlerts(session, tallies, games, drills);
+  // Practice reminders: rescheduled whenever something is logged or the settings change.
+  const [remindersVersion, setRemindersVersion] = useState(0);
+  useEffect(() => onReminderPrefs(() => setRemindersVersion(v => v + 1)), []);
+  useReminders(loaded, data, tallies, games, drills, remindersVersion);
   // Freeze the yardstick as soon as there is data, so Home, Plan and Progress all have it.
   useEffect(() => {
     if (!loaded || baseline || shots.size < 50) return;

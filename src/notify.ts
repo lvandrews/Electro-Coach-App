@@ -57,3 +57,24 @@ export async function shareText(title: string, text: string): Promise<'shared' |
     try { await navigator.clipboard.writeText(text); return 'copied'; } catch { return 'failed'; }
   }
 }
+
+// ---------- practice reminders ----------
+
+const REMINDER_CHANNEL = 'reminders';
+let reminderChannel: Promise<boolean> | null = null;
+
+/** Replace the scheduled reminders with these (all three ids are cleared first). */
+export async function scheduleReminders(ids: number[], notes: { id: number; at: Date; title: string; body: string }[]) {
+  if (!isNative()) return;
+  try {
+    await LocalNotifications.cancel({ notifications: ids.map(id => ({ id })) });
+    if (!notes.length) return;
+    const { ok } = await prepareNotifications();
+    if (!ok) return;
+    // A quieter channel than the end-of-block alerts: default importance, no vibration.
+    reminderChannel ??= LocalNotifications.createChannel({ id: REMINDER_CHANNEL, name: 'Practice reminders', description: 'Reminders to log practice and a recap of your last session', importance: 3, vibration: false, visibility: 1 })
+      .then(() => true).catch(() => false);
+    await reminderChannel;
+    await LocalNotifications.schedule({ notifications: notes.map(n => ({ id: n.id, title: n.title, body: n.body, channelId: REMINDER_CHANNEL, schedule: { at: n.at, allowWhileIdle: true } })) });
+  } catch { /* reminders are best-effort */ }
+}

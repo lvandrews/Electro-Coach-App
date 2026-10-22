@@ -5,7 +5,7 @@ import { StraightPoolScreen } from './StraightPoolScreen';
 
 export type PlayMode = 'clock' | 'straight' | 'bowling';
 const MODES: { id: PlayMode; label: string }[] = [
-  { id: 'clock', label: 'Shot clock' }, { id: 'straight', label: 'Straight pool' }, { id: 'bowling', label: '10-ball bowling' },
+  { id: 'clock', label: 'Shot clock' }, { id: 'straight', label: 'Straight pool' }, { id: 'bowling', label: 'Bowling drill' },
 ];
 
 type Props = { mode: PlayMode; onMode: (m: PlayMode) => void; games: Game[]; device: string; onSaveGame: (g: Game) => Promise<void>; onDeleteGame: (id: string) => Promise<void> };

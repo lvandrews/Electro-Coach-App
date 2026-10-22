@@ -19,7 +19,7 @@ export const DESTS: Dest[] = [
   { id: 'history', label: 'Session history', short: 'History', group: 'Practice', tab: 'history', keywords: 'log past recent tallies games practice' },
   { id: 'clock', label: 'Shot clock', short: 'Clock', group: 'Play', tab: 'play', play: 'clock', keywords: 'timer extension match' },
   { id: 'straight', label: 'Straight pool', short: '14.1', group: 'Play', tab: 'play', play: 'straight', keywords: '14.1 continuous match bpi high run score' },
-  { id: 'bowling', label: '10-ball bowling', short: 'Bowling', group: 'Play', tab: 'play', play: 'bowling', keywords: 'bowliards strike spare score game' },
+  { id: 'bowling', label: '10-ball bowling drill', short: 'Bowling', group: 'Practice', tab: 'play', play: 'bowling', keywords: 'bowliards strike spare score game drill run-out' },
   { id: 'fargo', label: 'FargoRate rating', short: 'Fargo', group: 'Play', tab: 'fargo', keywords: 'fargo fargorate rating robustness handicap' },
   { id: 'progress', label: 'Progress', short: 'Progress', group: 'Analysis', tab: 'progress', keywords: 'yardstick trend meters segments improvement regression' },
   { id: 'model', label: 'Strengths and shot model', short: 'Model', group: 'Analysis', tab: 'model', keywords: 'forest radar predictor logit expected strengths weaknesses' },
@@ -30,7 +30,7 @@ export const DESTS: Dest[] = [
   { id: 'journal', label: 'Journal', short: 'Journal', group: 'Reference', tab: 'journal', keywords: 'notes changes equipment technique tip coach chatbot ai share' },
   { id: 'resources', label: 'Resources', short: 'Links', group: 'Reference', tab: 'resources', keywords: 'links websites youtube channels videos instruction railbird salotto poolbilliards' },
   { id: 'import', label: 'Import Railbird data', short: 'Import', group: 'Data and settings', tab: 'import', keywords: 'csv export upload' },
-  { id: 'settings', label: 'Settings and backup', short: 'Settings', group: 'Data and settings', tab: 'settings', keywords: 'appearance theme dark light color backup restore rules delete bottom bar' },
+  { id: 'settings', label: 'Settings and backup', short: 'Settings', group: 'Data and settings', tab: 'settings', keywords: 'appearance theme dark light color backup restore rules delete bottom bar reminders notifications nudge recap' },
 ];
 export const GROUPS: Group[] = ['Practice', 'Play', 'Analysis', 'Reference', 'Data and settings'];
 

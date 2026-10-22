@@ -74,7 +74,7 @@ export function HomeScreen(p: Props) {
           )}
           {liveGames.map(g => (
             <div key={g.id} class="now-row">
-              <div class="grow"><b>{g.kind === 'bowling' ? '10-ball bowling game' : `Straight pool vs ${(g as StraightPoolMatch).players[1]}`}</b> <span class="small muted">· started {ago(g.date)}</span></div>
+              <div class="grow"><b>{g.kind === 'bowling' ? '10-ball bowling drill' : `Straight pool vs ${(g as StraightPoolMatch).players[1]}`}</b> <span class="small muted">· started {ago(g.date)}</span></div>
               <button class="btn primary btn-s" onClick={() => p.onPlay(g.kind === 'bowling' ? 'bowling' : 'straight')}>Resume</button>
             </div>
           ))}
@@ -100,7 +100,7 @@ export function HomeScreen(p: Props) {
           {plan?.targets[0] && <button class="tile tile-btn" onClick={() => (plan.targets[0].drills[0] ? p.onOpenDrill(plan.targets[0].drills[0]) : p.onGo('plan'))}><div class="tile-title">Top target</div><div class="tile-small">{plan.targets[0].label}</div><div class="small muted">{plan.targets[0].perHundred.toFixed(1)} makes lost / 100{plan.targets[0].drills[0] ? ' · tap for the drill' : ''}</div></button>}
           {med?.sweet && med.best != null && <button class="tile tile-btn" onClick={() => p.onGoFocus('model', 'speed-profile')}><div class="tile-title">Speed sweet spot</div><div class="tile-big num">{med.best.toFixed(1)} <span class="small">mph</span></div><div class="small muted">best at {med.label.toLowerCase()} distance (sweet spot {mphRange(med.sweet)}){speed!.bands.filter(b => b !== med && b.best != null).map(b => ` · ${b.label.toLowerCase()} ${b.best!.toFixed(1)}`).join('')}</div></button>}
           {fargoNow && <button class="tile tile-btn" onClick={() => p.onGo('fargo')}><div class="tile-title">FargoRate</div><div class="tile-big num">{fargoNow.rating}</div><div class="small muted">{fargoCh ? `${fargoCh.diff >= 0 ? '+' : '−'}${Math.abs(fargoCh.diff)} in 90 days` : `as of ${fmtDate(`${fargoNow.date}T12:00:00`)}`}</div></button>}
-          {bowl5 && <button class="tile tile-btn" onClick={() => p.onPlay('bowling')}><div class="tile-title">10-ball bowling</div><div class="tile-big num">{bowl5.average!.toFixed(0)}</div><div class="small muted">average, last {bowl5.games}</div></button>}
+          {bowl5 && <button class="tile tile-btn" onClick={() => p.onPlay('bowling')}><div class="tile-title">Bowling drill</div><div class="tile-big num">{bowl5.average!.toFixed(0)}</div><div class="small muted">average, last {bowl5.games}</div></button>}
           {spBpi.length > 0 && <button class="tile tile-btn" onClick={() => p.onPlay('straight')}><div class="tile-title">Straight pool</div><div class="tile-big num">{(spBpi.reduce((a, b) => a + b, 0) / spBpi.length).toFixed(2)}</div><div class="small muted">balls per inning</div></button>}
         </div>
       )}

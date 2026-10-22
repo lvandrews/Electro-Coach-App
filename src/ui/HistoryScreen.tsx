@@ -13,7 +13,7 @@ import { fmtDate, fmtTime, int, pct, plural } from './format';
 export type ActivityKind = 'practice' | 'railbird' | 'tally' | 'bowling' | 'straight';
 export interface Activity { id: string; kind: ActivityKind; date: string; title: string; detail: string; ref: string; live?: boolean }
 
-export const KIND_LABEL: Record<ActivityKind, string> = { practice: 'Practice session', railbird: 'Railbird', tally: 'Tally', bowling: '10-ball bowling', straight: 'Straight pool' };
+export const KIND_LABEL: Record<ActivityKind, string> = { practice: 'Practice session', railbird: 'Railbird', tally: 'Tally', bowling: 'Bowling drill', straight: 'Straight pool' };
 
 export function activities(data: AppData, tallies: TallySession[], games: Game[], drills: DrillDef[]): Activity[] {
   const out: Activity[] = [];

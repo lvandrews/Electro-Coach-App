@@ -2,7 +2,9 @@ import { useRef, useState } from 'preact/hooks';
 import type { AppData } from '../app';
 import { RULES, DEFAULT_RULES, tally, type RuleConfig, type RuleId } from '../engine/rules';
 import * as store from '../store/db';
-import { saveTextFile } from '../platform';
+import { isNative, saveTextFile } from '../platform';
+import { loadReminderPrefs, saveReminderPrefs } from './reminders';
+import type { ReminderPrefs } from '../engine/reminders';
 import { int, localYmd } from './format';
 import { SLOT_CHOICES, DEFAULT_BAR } from './nav';
 import { setPrefs, usePrefs, type DataPalette, type HeatPalette, type ThemePref, type TierPalette } from './prefs';
@@ -56,10 +58,11 @@ export function SettingsScreen({ data, device, onDevice, onRules, onRestored, on
   return (
     <section>
       <h2>Settings</h2>
-      <p class="lede" style={{ marginBottom: '10px' }}>Appearance, cleaning rules, this device's name, backups.</p>
+      <p class="lede" style={{ marginBottom: '10px' }}>Appearance, reminders, cleaning rules, this device's name, backups.</p>
       {msg && <div class="notice good" role="status">{msg}</div>}
 
       <Appearance />
+      <Reminders />
 
       <div class="card">
         <h3>Cleaning rules</h3>
@@ -150,6 +153,31 @@ function Choice<T extends string>({ label, value, options, onPick }: { label: st
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+function Reminders() {
+  const [p, setP] = useState(loadReminderPrefs());
+  const set = (patch: Partial<ReminderPrefs>) => { const next = { ...p, ...patch }; setP(next); saveReminderPrefs(next); };
+  const hours = Array.from({ length: 24 }, (_, h) => h);
+  const label = (h: number) => new Date(2026, 0, 1, h).toLocaleTimeString([], { hour: 'numeric' });
+  return (
+    <div class="card">
+      <h3>Reminders</h3>
+      {!isNative() ? <p class="small muted" style={{ marginTop: 0 }}>Reminders are notifications, so they need the Android app.</p> : <>
+        <p class="small muted" style={{ marginTop: 0 }}>Gentle and few. Logging anything (a tally, game, match, timed session or Railbird session) resets them.</p>
+        <label class="small switch-row"><input type="checkbox" checked={p.nudges} onChange={() => set({ nudges: !p.nudges })} />
+          <span><b>Nudge me</b> after 3 days without practice, and once more after 7. Then nothing until you log again.</span></label>
+        <label class="small switch-row" style={{ marginTop: '6px' }}><input type="checkbox" checked={p.recap} onChange={() => set({ recap: !p.recap })} />
+          <span><b>Next-day recap</b>: the morning after you practice, a note of what you did.</span></label>
+        <div class="note-form" style={{ marginTop: '8px' }}>
+          <label class="small">Nudges at<select value={String(p.nudgeHour)} disabled={!p.nudges} onChange={e => set({ nudgeHour: Number((e.target as HTMLSelectElement).value) })}>
+            {hours.map(h => <option key={h} value={h}>{label(h)}</option>)}</select></label>
+          <label class="small">Recap at<select value={String(p.recapHour)} disabled={!p.recap} onChange={e => set({ recapHour: Number((e.target as HTMLSelectElement).value) })}>
+            {hours.map(h => <option key={h} value={h}>{label(h)}</option>)}</select></label>
+        </div>
+      </>}
     </div>
   );
 }

@@ -88,7 +88,7 @@ export function Empty({ onGo }: { onGo: (t: Tab) => void }) {
     <section class="card flat">
       <h3>No shots yet</h3>
       <p class="muted">This page analyzes Railbird shot data: import a Railbird export to fill it in.
-        Drills, tallies, timed sessions, scoring, the shot clock, FargoRate, the journal and the routine all work without Railbird.</p>
+        Drills, tallies, timed sessions, straight pool scoring, the shot clock, FargoRate, the journal and the routine all work without Railbird.</p>
       <button class="btn primary" onClick={() => onGo('import')}>Go to Import</button>
     </section>
   );

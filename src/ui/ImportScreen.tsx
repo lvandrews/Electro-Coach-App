@@ -32,7 +32,7 @@ export function ImportScreen({ data, busy, lastReport, capture, onFiles, onGo }:
           : 'Bring in a Railbird CSV export; shots you already have are skipped.'}
       </p>
       {empty && <p class="small muted" style={{ marginTop: '-4px' }}>
-        Railbird is optional. Without it you still have drills and tallies, timed practice, straight pool and 10-ball bowling scoring, the shot clock,
+        Railbird is optional. Without it you still have drills and tallies, timed practice, straight pool scoring, the shot clock,
         FargoRate, the journal and the pre-shot routine. Railbird data adds the analysis: progress, the practice plan, heat maps, the speed profile and your best shots.
       </p>}
 
@@ -45,7 +45,7 @@ export function ImportScreen({ data, busy, lastReport, capture, onFiles, onGo }:
         <button class="btn primary" disabled={!!busy} onClick={() => input.current?.click()}>
           Choose Railbird export
         </button>
-        <span class="small muted">{busy ?? 'CSV file. On a computer you can also drop it here.'}</span>
+        <span class="small muted">{busy ?? (isNative() ? 'CSV file. You can also share an export straight to Electro-Coach from another app.' : 'CSV file. On a computer you can also drop it here.')}</span>
         <input ref={input} type="file" accept={isNative() ? undefined : '.csv,text/csv'} multiple hidden
           onChange={e => { pick((e.target as HTMLInputElement).files); (e.target as HTMLInputElement).value = ''; }} />
       </div>
