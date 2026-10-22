@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Electro-Coach</string>
+    <string name="title_activity_main">Electro-Coach</string>
+    <string name="package_name">app.electrocoach.pool</string>
+    <string name="custom_url_scheme">app.electrocoach.pool</string>
+</resources>

@@ -1,0 +1,164 @@
+{
+  "_readme": "Ball layouts that ship with the app. Keys are drill ids (transitions-1, double-box, xdrill, \u2026). Coordinates are inches on a 50 \u00d7 100 table, head rail at the top: x 0 = left long rail, y 0 = foot rail. In the app, open a drill, tap 'Copy layout', and paste the result here. A layout here replaces the drawn default; a layout saved on a device still overrides it on that device until 'Restore default'.",
+  "layouts": {
+    "transitions-1": {
+      "balls": [
+        {
+          "kind": "ob",
+          "x": 46.625,
+          "y": 75,
+          "num": 1
+        },
+        {
+          "kind": "ob",
+          "x": 3.375,
+          "y": 75,
+          "num": 2
+        },
+        {
+          "kind": "ob",
+          "x": 25,
+          "y": 96.625,
+          "num": 3
+        },
+        {
+          "kind": "ob",
+          "x": 25,
+          "y": 75,
+          "num": 4
+        },
+        {
+          "kind": "ob",
+          "x": 46.625,
+          "y": 25,
+          "num": 5
+        },
+        {
+          "kind": "ob",
+          "x": 25,
+          "y": 3.375,
+          "num": 6
+        },
+        {
+          "kind": "ob",
+          "x": 3.375,
+          "y": 25,
+          "num": 7
+        },
+        {
+          "kind": "ob",
+          "x": 25,
+          "y": 25,
+          "num": 8
+        },
+        {
+          "kind": "ob",
+          "x": 25,
+          "y": 50,
+          "num": 9
+        },
+        {
+          "kind": "cb",
+          "x": 25,
+          "y": 55.625
+        }
+      ],
+      "paths": [],
+      "notes": [
+        "Rail balls sit at the second diamonds with one ball-width gap to the cushion (center 3\u215c\u2033 off the cushion nose). 4 on the head spot, 8 on the foot spot, 9 on the center spot. Cue ball directly uptable of the 9 with a 1\u00bd-ball gap."
+      ]
+    },
+    "double-box": {
+      "balls": [
+        {
+          "kind": "ob",
+          "x": 6.25,
+          "y": 75,
+          "num": 1
+        },
+        {
+          "kind": "ob",
+          "x": 6.25,
+          "y": 25,
+          "num": 2
+        },
+        {
+          "kind": "ob",
+          "x": 12.5,
+          "y": 75,
+          "num": 3
+        },
+        {
+          "kind": "ob",
+          "x": 12.5,
+          "y": 25,
+          "num": 4
+        },
+        {
+          "kind": "ob",
+          "x": 18.75,
+          "y": 75,
+          "num": 5
+        },
+        {
+          "kind": "ob",
+          "x": 18.75,
+          "y": 25,
+          "num": 6
+        },
+        {
+          "kind": "ob",
+          "x": 25,
+          "y": 75,
+          "num": 7
+        },
+        {
+          "kind": "ob",
+          "x": 25,
+          "y": 25,
+          "num": 8
+        },
+        {
+          "kind": "ob",
+          "x": 25,
+          "y": 81.25,
+          "num": 9
+        },
+        {
+          "kind": "ob",
+          "x": 25,
+          "y": 18.75,
+          "num": 10
+        },
+        {
+          "kind": "ob",
+          "x": 25,
+          "y": 87.5,
+          "num": 11
+        },
+        {
+          "kind": "ob",
+          "x": 25,
+          "y": 12.5,
+          "num": 12
+        },
+        {
+          "kind": "ob",
+          "x": 25,
+          "y": 93.75,
+          "num": 13
+        },
+        {
+          "kind": "ob",
+          "x": 25,
+          "y": 6.25,
+          "num": 14
+        }
+      ],
+      "paths": [],
+      "notes": [
+        "Odd balls form an L at the head end (along the head string and up the center line from the head spot), even balls the mirror L at the foot end. Balls are half a diamond (6.25\u2033) apart."
+      ]
+    }
+  }
+}

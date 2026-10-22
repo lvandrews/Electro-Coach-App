@@ -1,0 +1,16 @@
+{
+  "name": "Electro-Coach",
+  "short_name": "Electro-Coach",
+  "description": "Pool practice: Railbird shot analysis, practice plans, drills, scoring and a shot clock.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#10171c",
+  "theme_color": "#3a271c",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

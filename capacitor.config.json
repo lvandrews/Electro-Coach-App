@@ -1,0 +1,6 @@
+{
+  "appId": "app.electrocoach.pool",
+  "appName": "Electro-Coach",
+  "webDir": "dist",
+  "android": { "backgroundColor": "#eef2f4" }
+}
