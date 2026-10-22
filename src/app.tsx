@@ -44,6 +44,7 @@ import { onReminderPrefs, useReminders } from './ui/reminders';
 import { startUsage, track, trackOnce, trackScreen } from './usage';
 import { drillLabel, shotBand } from './engine/usage';
 import { UsageNotice } from './ui/Usage';
+import { AboutScreen, UpdateBanner } from './ui/AboutScreen';
 import { bowlingCard } from './engine/games';
 
 const BUILTIN_IDS = new Set(BUILTIN_DRILLS.map(d => d.id));
@@ -313,6 +314,7 @@ export function App() {
 
       <main>
         <UsageNotice />
+        <UpdateBanner />
         {error && <div class="notice bad" role="alert">{error}</div>}
         {status && tab !== 'session' && tab !== 'home' && (
           <button class={`session-banner ${status.due ? 'due' : ''}`} onClick={() => go('session')}>{status.text}</button>
@@ -370,7 +372,8 @@ export function App() {
           : tab === 'play' ? <PlayScreen mode={playMode} onMode={pickPlay} games={games} device={device} onSaveGame={saveGame} onDeleteGame={deleteGame} />
           : tab === 'plan' ? <PlanScreen data={data} drills={drills} baseline={baseline} pins={pins} plan={plan}
               onBaseline={updateBaseline} onPlan={updatePlan} onPins={updatePins} onOpenDrill={openDrill} onGo={go} />
-          : tab === 'settings' ? <SettingsScreen data={data} device={device} onDevice={renameDevice} onRules={updateRules} onRestored={reload} onBackedUp={setLastBackup} />
+          : tab === 'settings' ? <SettingsScreen data={data} device={device} onDevice={renameDevice} onRules={updateRules} onRestored={reload} onBackedUp={setLastBackup} onGo={go} />
+          : tab === 'about' ? <AboutScreen onGo={go} />
           : null}
       </main>
 

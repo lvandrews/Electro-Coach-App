@@ -6,7 +6,7 @@ import type { PlayMode } from './PlayScreen';
 export type Tab =
   | 'home' | 'plan' | 'drills' | 'history' | 'session'
   | 'play' | 'progress' | 'model' | 'table' | 'data' | 'sessions'
-  | 'journal' | 'routine' | 'resources' | 'fargo' | 'bowling' | 'import' | 'settings';
+  | 'journal' | 'routine' | 'resources' | 'fargo' | 'bowling' | 'import' | 'settings' | 'about';
 
 export type Group = 'Practice' | 'Play' | 'Analysis' | 'Reference' | 'Data and settings';
 
@@ -30,7 +30,8 @@ export const DESTS: Dest[] = [
   { id: 'journal', label: 'Journal', short: 'Journal', group: 'Reference', tab: 'journal', keywords: 'notes changes equipment technique tip coach chatbot ai share' },
   { id: 'resources', label: 'Resources', short: 'Links', group: 'Reference', tab: 'resources', keywords: 'links websites youtube channels videos instruction railbird salotto poolbilliards' },
   { id: 'import', label: 'Import Railbird data', short: 'Import', group: 'Data and settings', tab: 'import', keywords: 'csv export upload' },
-  { id: 'settings', label: 'Settings and backup', short: 'Settings', group: 'Data and settings', tab: 'settings', keywords: 'appearance theme dark light color backup restore rules delete bottom bar reminders notifications nudge recap' },
+  { id: 'settings', label: 'Settings and backup', short: 'Settings', group: 'Data and settings', tab: 'settings', keywords: 'appearance theme dark light color backup restore rules delete bottom bar reminders notifications nudge recap usage analytics privacy' },
+  { id: 'about', label: 'About, updates and feedback', short: 'About', group: 'Data and settings', tab: 'about', keywords: 'version update upgrade download apk release feedback bug problem report issue idea suggest copyright license privacy help contact' },
 ];
 export const GROUPS: Group[] = ['Practice', 'Play', 'Analysis', 'Reference', 'Data and settings'];
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import { acceptNotice, APP_VERSION, noticeAnswered, onUsageChange, platformName, setUsageOn, usageConfigured, usageOn } from '../usage';
+import { acceptNotice, noticeAnswered, onUsageChange, setUsageOn, usageConfigured, usageOn } from '../usage';
 
 function useUsageState() {
   const [, bump] = useState(0);
@@ -46,7 +46,6 @@ export function UsageSettings() {
               venues, FargoRate ID, or any account or device ID. The counts go to Aptabase (aptabase.com), a privacy-first analytics service.</p>
           </details>
         </>}
-      <p class="small muted" style={{ margin: '10px 0 0' }}>Electro-Coach {APP_VERSION === 'web' || APP_VERSION === 'dev' ? '(web version)' : APP_VERSION} · {platformName()}</p>
     </div>
   );
 }

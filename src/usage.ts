@@ -5,6 +5,7 @@
 // switch off drops them and stops sending. With no app key set, nothing is ever sent.
 
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
+import { APP_VERSION } from './version';
 import { buildEvent, endpointFor, nextSession, type AptabaseEvent, type UsageEvent, type UsageProps } from './engine/usage';
 
 /**
@@ -13,8 +14,6 @@ import { buildEvent, endpointFor, nextSession, type AptabaseEvent, type UsageEve
  */
 export const APTABASE_APP_KEY = 'A-US-3054736082';
 
-declare const __APP_VERSION__: string;
-export const APP_VERSION: string = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev';
 
 const K_ON = 'ec-usage', K_NOTICE = 'ec-usage-notice', K_FIRST = 'ec-first-open';
 const get = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };

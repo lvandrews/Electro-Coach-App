@@ -650,6 +650,8 @@ details.card > summary { font-size: 1.02rem; }
 @media (pointer: coarse) { .kbd-hint { display: none !important; } }
 .notice.learn-note { border-color: var(--accent); }
 .notice.usage-notice { border-color: var(--accent); }
+.notice.update-notice { border-color: var(--good); }
+.release-notes { white-space: pre-wrap; margin-top: 6px; max-height: 40vh; overflow: auto; color: var(--ink-2); }
 
 /* Speed profile strip */
 .chart .ref-band { fill: var(--grid); opacity: 0.7; }

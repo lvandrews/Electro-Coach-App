@@ -6,7 +6,7 @@ import { isNative, saveTextFile } from '../platform';
 import { loadReminderPrefs, saveReminderPrefs } from './reminders';
 import type { ReminderPrefs } from '../engine/reminders';
 import { int, localYmd } from './format';
-import { SLOT_CHOICES, DEFAULT_BAR } from './nav';
+import { SLOT_CHOICES, DEFAULT_BAR, type Tab } from './nav';
 import { track } from '../usage';
 import { UsageSettings } from './Usage';
 import { setPrefs, usePrefs, type DataPalette, type HeatPalette, type ThemePref, type TierPalette } from './prefs';
@@ -18,9 +18,9 @@ const THRESHOLDS: Partial<Record<RuleId, { key: keyof RuleConfig; unit: string; 
   break: { key: 'breakMph', unit: 'mph', step: 0.5 },
 };
 
-interface Props { data: AppData; device: string; onDevice: (n: string) => void; onRules: (r: RuleConfig) => void; onRestored: () => Promise<void>; onBackedUp: (iso: string) => void }
+interface Props { data: AppData; device: string; onDevice: (n: string) => void; onRules: (r: RuleConfig) => void; onRestored: () => Promise<void>; onBackedUp: (iso: string) => void; onGo: (t: Tab) => void }
 
-export function SettingsScreen({ data, device, onDevice, onRules, onRestored, onBackedUp }: Props) {
+export function SettingsScreen({ data, device, onDevice, onRules, onRestored, onBackedUp, onGo }: Props) {
   const r = data.rules;
   const counts = Object.fromEntries(tally(data.exclusions).map(t => [t.id, t]));
   const file = useRef<HTMLInputElement>(null);
@@ -63,6 +63,7 @@ export function SettingsScreen({ data, device, onDevice, onRules, onRestored, on
       <h2>Settings</h2>
       <p class="lede" style={{ marginBottom: '10px' }}>Appearance, reminders, usage counts, cleaning rules, this device's name, backups.</p>
       {msg && <div class="notice good" role="status">{msg}</div>}
+      <button class="btn btn-s" style={{ marginBottom: '10px' }} onClick={() => onGo('about')}>About, updates and feedback</button>
 
       <Appearance />
       <Reminders />

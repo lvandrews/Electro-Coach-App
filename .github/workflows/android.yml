@@ -83,11 +83,20 @@ jobs:
           retention-days: 30
 
       # One release per build, tagged v0.1.N and marked latest, with the APK named by version.
+      # The release notes carry the commit message under "What's new"; the app shows it in its update prompt.
       - name: Publish the release
         if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
+          {
+            echo "Download electro-coach-$VERSION_NAME.apk on your Android phone and open it. It installs over the previous version and keeps your data; don't uninstall to update."
+            if [ -n "$COMMIT_MESSAGE" ]; then
+              echo; echo "## What's new"; echo
+              printf '%s\n' "$COMMIT_MESSAGE"
+            fi
+          } > release-notes.md
           # The earlier rolling "latest" release is replaced by versioned releases.
           gh release delete latest --cleanup-tag --yes 2>/dev/null || true
           if gh release view "v$VERSION_NAME" > /dev/null 2>&1; then
@@ -98,4 +107,4 @@ jobs:
           gh release create "v$VERSION_NAME" "electro-coach-$VERSION_NAME.apk" \
             --target "$GITHUB_SHA" --latest \
             --title "Electro-Coach $VERSION_NAME" \
-            --notes "Download electro-coach-$VERSION_NAME.apk on your Android phone and open it. It installs over the previous version and keeps your data; don't uninstall to update."
+            --notes-file release-notes.md

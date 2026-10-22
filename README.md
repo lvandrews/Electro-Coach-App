@@ -21,7 +21,8 @@ No account, no AI needed: your data stays on your device.</p>
 - **Android**: open the [latest release](https://github.com/lvandrews/Electro-Coach-App/releases/latest) on the phone,
   download `electro-coach-<version>.apk` and open it. Android asks once to allow installs from your browser or file app.
   A new version installs over the old one and keeps your data; don't uninstall to update
-  (that erases the app's data). All versions: [Releases](https://github.com/lvandrews/Electro-Coach-App/releases).
+  (that erases the app's data). The app tells you when a new version is out and offers to
+  download it. All versions: [Releases](https://github.com/lvandrews/Electro-Coach-App/releases).
 - **iPhone**: open the Electro-Coach web version in **Safari**, tap **Share → Add to Home Screen**,
   and open it from the new icon. It runs full screen and works offline once loaded; your data
   stays on the phone. (The end of a timed practice block sounds only while the app is on
@@ -262,6 +263,13 @@ games, matches and timed practice sessions.
   works out the country from the connection and doesn't store the address. Nothing you enter is
   ever sent: no shots, scores, notes, routine text, names, venues or FargoRate ID, and there is no
   account, device ID or install ID. The full list is in `src/engine/usage.ts`.
+- **Updates** (Android): when the app opens (at most twice a day) it asks GitHub for the latest
+  release. If there's a newer one it shows what's new and offers **Download**, **Not now** (asks
+  again tomorrow) or **Skip this version**. It never downloads anything without asking.
+- **About**: the version you have, a Check for updates button, feedback (Report a problem and
+  Suggest an idea open a GitHub issue with the version filled in), a privacy summary and the copyright.
+
+**Feedback**: [open an issue](https://github.com/lvandrews/Electro-Coach-App/issues) for a problem or an idea, or use About → Report a problem in the app.
 
 ## How the numbers work
 
@@ -447,8 +455,8 @@ cd android && ./gradlew assembleDebug
   plan (`plan.ts`), timed sessions (`session.ts`), games (`games.ts`), the coach summary
   (`coach.ts`), the pre-shot routine text and its live numbers (`routine.ts`, `facts.ts`), the
   speed profile (`speed.ts`), straight pool scoresheets and opponents (`scoresheet.ts`, with a
-  small PDF writer in `pdf.ts`), FargoRate (`fargo.ts`), resource links (`resources.ts`) and the anonymous usage events (`usage.ts`;
-  sending is in `src/usage.ts`).
+  small PDF writer in `pdf.ts`), FargoRate (`fargo.ts`), resource links (`resources.ts`), the anonymous usage events (`usage.ts`;
+  sending is in `src/usage.ts`) and the update check (`update.ts`; fetching is in `src/update.ts`).
 - `src/store/db.ts`: IndexedDB storage, backup and restore.
 - `src/ui/`: Preact screens; charts are hand-written SVG. `nav.ts` lists every page and the
   bottom-bar choices; `notify.ts` schedules end-of-block notifications.
@@ -463,7 +471,8 @@ The five planned build steps are done (import and cleaning, the shot model, heat
 progress, the practice plan), along with drills and tallies, Play, Home, the drawer, the
 journal, the pre-shot routine and timed sessions; then the learning stage, the speed profile,
 your numbers in the routine, straight pool opponents and scoresheets, FargoRate, Resources,
-the iPhone web version, Android share-to-import, practice reminders and anonymous usage counts.
+the iPhone web version, Android share-to-import, practice reminders, anonymous usage counts,
+the update check and the About page.
 
 Next ideas: a native iPhone build (TestFlight), a Double L variant, an importer for past 10-ball bowling drill scores, Railbird
 sessions matched to timed-session blocks, and optional cloud sync between devices.
