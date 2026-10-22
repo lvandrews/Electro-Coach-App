@@ -2,11 +2,12 @@
 
 <h1 align="center">Electro-Coach</h1>
 
-<p align="center">A pool practice coach for Android, iPhone and computer browsers. It imports Railbird shot exports,
-analyzes them on the device, runs your practice sessions, scores your games and keeps a journal.
+<p align="center">A pool practice coach for Android, iPhone and computer browsers. It runs your practice sessions,
+drills and tallies, scores straight pool and 10-ball bowling, keeps a journal, and turns
+<a href="https://railbird.ai/">Railbird</a> shot exports into progress tracking, a practice plan and heat maps.
 No server, no account, no AI needed: everything stays on your device.</p>
 
-<p align="center"><a href="https://github.com/lvandrews/Electro-Coach-App/releases/latest/download/electro-coach.apk"><b>Download the latest Android app (APK)</b></a> · <a href="#get-the-app">iPhone and computer</a></p>
+<p align="center"><a href="https://github.com/lvandrews/Electro-Coach-App/releases/latest"><b>Download the latest Android app (APK)</b></a> · <a href="#get-the-app">iPhone and computer</a></p>
 
 <table>
 <tr><td align="center" valign="top" width="33%"><img src="docs/screenshots/01-home.jpg" width="240" alt="Home"><br><sub>Home</sub></td><td align="center" valign="top" width="33%"><img src="docs/screenshots/09-progress.jpg" width="240" alt="Progress"><br><sub>Progress</sub></td><td align="center" valign="top" width="33%"><img src="docs/screenshots/11-table.jpg" width="240" alt="Table heat map"><br><sub>Table heat map</sub></td></tr>
@@ -14,8 +15,8 @@ No server, no account, no AI needed: everything stays on your device.</p>
 
 ## Get the app
 
-- **Android**: download [electro-coach.apk](https://github.com/lvandrews/Electro-Coach-App/releases/latest/download/electro-coach.apk)
-  on the phone and open it. Android asks once to allow installs from your browser or file app.
+- **Android**: open the [latest release](https://github.com/lvandrews/Electro-Coach-App/releases/latest) on the phone,
+  download `electro-coach-<version>.apk` and open it. Android asks once to allow installs from your browser or file app.
   A new version installs over the old one and keeps your data; don't uninstall to update
   (that erases the app's data). All versions: [Releases](https://github.com/lvandrews/Electro-Coach-App/releases).
 - **iPhone**: open the Electro-Coach web version in **Safari**, tap **Share → Add to Home Screen**,
@@ -27,6 +28,18 @@ No server, no account, no AI needed: everything stays on your device.</p>
 
 Each device keeps its own data. Move it between devices with **Settings → Back up** and
 **Restore**, and back up now and then.
+
+**With or without Railbird.** Drills and tallies, timed practice, straight pool and 10-ball
+bowling scoring, the shot clock, FargoRate, the journal and the pre-shot routine all work on
+their own. Railbird's shot tracking is what makes the analysis possible: import your Railbird
+CSV exports and you get progress against a yardstick, a practice plan ranked by makes lost,
+table heat maps, a speed profile and your most reliable shots. The aim is to get more out of
+Railbird sessions and to point each one at what to work on next.
+
+**Independent.** Electro-Coach is an independent project. It isn't affiliated with, sponsored
+by or endorsed by Railbird, FargoRate or any site or channel listed in its Resources page;
+those are listed because they're good resources for the game. Product names belong to their
+owners.
 
 ## Contents
 
@@ -362,14 +375,14 @@ break ≥ 18 mph 43, duplicates 17, false positive 0).
 ### The Android APK
 
 Every push to `main` runs *Build Android APK* (Actions tab): tests, the web build, then the
-APK. The workflow publishes it as the **latest** release with a fixed file name, so the
-download link at the top always gets the newest build; each run also keeps a versioned copy
-as a build artifact for 30 days.
+APK. Each build is published as its own release (`v0.1.N`, marked latest) with the APK named
+by version, `electro-coach-0.1.N.apk`; the download link at the top always opens the newest.
+Version numbers continue from the earlier private repository (`VERSION_OFFSET` in the
+workflow), because Android won't install a lower version over a higher one.
 
 Every build is signed with the same key and has a higher version number, so a new APK
 installs over the old one. The key comes from the `ANDROID_KEYSTORE_BASE64` repository
-secret when it is set, otherwise from `android/keystore/`. Before making the repository
-public, move the key into the secret and out of the repository: anyone holding it could sign
+secret; the key file is never committed (`android/keystore/` is git-ignored). Anyone holding it could sign
 an APK that installs over yours.
 
 ### The web version (iPhone and computers)

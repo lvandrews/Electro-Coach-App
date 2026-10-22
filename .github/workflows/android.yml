@@ -7,24 +7,36 @@ on:
 
 jobs:
   apk:
-    runs-on: ubuntu-latest
+    # Pinned rather than ubuntu-latest, so a runner image change can't break the build unannounced.
+    runs-on: ubuntu-24.04
     permissions:
       contents: write          # to publish the APK as a release
+    env:
+      # Builds 1–15 came from the earlier repository. Android refuses to install a lower
+      # version code over a higher one, so this repository continues the count: run 2 = 0.1.16.
+      VERSION_OFFSET: 14
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
 
+      - name: Version
+        run: |
+          CODE=$(( ${{ github.run_number }} + VERSION_OFFSET ))
+          echo "VERSION_CODE=$CODE" >> "$GITHUB_ENV"
+          echo "VERSION_NAME=0.1.$CODE" >> "$GITHUB_ENV"
+          echo "Building version 0.1.$CODE (code $CODE)"
+
       # GitHub's Ubuntu runners come with the Android SDK installed. Accept its
-      # licences and make sure the platform this app targets is present.
+      # licenses and make sure the platform this app targets is present.
       - name: Prepare Android SDK
         run: |
           SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
@@ -41,8 +53,8 @@ jobs:
       - name: Build web app and copy into Android project
         run: npm run android:sync
 
-      # Signing key: from the ANDROID_KEYSTORE_BASE64 secret when it is set (needed before
-      # the repository goes public), otherwise the key file in android/keystore/.
+      # Signing key: from the ANDROID_KEYSTORE_BASE64 secret when it is set, otherwise
+      # the key file in android/keystore/ (never committed to this repository).
       - name: Signing key from secret
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -52,43 +64,38 @@ jobs:
             echo "$KEYSTORE_B64" | base64 --decode > android/keystore/debug.keystore
             echo "Using the signing key from the repository secret."
           else
-            echo "No secret set; using android/keystore/debug.keystore from the repository."
+            echo "No secret set; using android/keystore/debug.keystore if present."
           fi
 
       - name: Build APK
         working-directory: android
-        env:
-          VERSION_CODE: ${{ github.run_number }}
-          VERSION_NAME: 0.1.${{ github.run_number }}
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
       - name: Rename
-        run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk electro-coach-0.1.${{ github.run_number }}.apk
-          cp android/app/build/outputs/apk/debug/app-debug.apk electro-coach.apk
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk "electro-coach-$VERSION_NAME.apk"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: electro-coach-apk
-          path: electro-coach-0.1.*.apk
+          path: electro-coach-*.apk
           retention-days: 30
 
-      # One rolling release, "latest", always holds the newest APK under a fixed name,
-      # so the README can link straight to it.
-      - name: Publish the APK as the latest release
+      # One release per build, tagged v0.1.N and marked latest, with the APK named by version.
+      - name: Publish the release
         if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: 0.1.${{ github.run_number }}
         run: |
-          git tag -f latest
-          git push -f origin latest
-          NOTES="Electro-Coach $VERSION, built from ${GITHUB_SHA::7}. Download electro-coach.apk on your Android phone and open it; it installs over the previous version and keeps your data."
-          if gh release view latest > /dev/null 2>&1; then
-            gh release edit latest --title "Electro-Coach $VERSION" --notes "$NOTES" --latest
-          else
-            gh release create latest --title "Electro-Coach $VERSION" --notes "$NOTES" --latest
+          # The earlier rolling "latest" release is replaced by versioned releases.
+          gh release delete latest --cleanup-tag --yes 2>/dev/null || true
+          if gh release view "v$VERSION_NAME" > /dev/null 2>&1; then
+            # A re-run of the same build: replace its APK.
+            gh release upload "v$VERSION_NAME" "electro-coach-$VERSION_NAME.apk" --clobber
+            exit 0
           fi
-          gh release upload latest electro-coach.apk --clobber
+          gh release create "v$VERSION_NAME" "electro-coach-$VERSION_NAME.apk" \
+            --target "$GITHUB_SHA" --latest \
+            --title "Electro-Coach $VERSION_NAME" \
+            --notes "Download electro-coach-$VERSION_NAME.apk on your Android phone and open it. It installs over the previous version and keeps your data; don't uninstall to update."

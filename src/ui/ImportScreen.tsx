@@ -31,6 +31,10 @@ export function ImportScreen({ data, busy, lastReport, capture, onFiles, onGo }:
           ? 'Export your shot data from Railbird as CSV, then bring it in here. Start with your all-time export; after that, recent exports are enough. Shots you already have are recognized and skipped.'
           : 'Bring in a Railbird CSV export; shots you already have are skipped.'}
       </p>
+      {empty && <p class="small muted" style={{ marginTop: '-4px' }}>
+        Railbird is optional. Without it you still have drills and tallies, timed practice, straight pool and 10-ball bowling scoring, the shot clock,
+        FargoRate, the journal and the pre-shot routine. Railbird data adds the analysis: progress, the practice plan, heat maps, the speed profile and your best shots.
+      </p>}
 
       <div
         class={`drop ${over ? 'over' : ''}`}

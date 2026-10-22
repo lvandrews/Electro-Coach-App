@@ -23,6 +23,10 @@ export function ResourcesScreen({ groups: saved, onGroups, focus }: Props) {
     <section>
       <h2>Resources</h2>
       <p class="lede">Sites and channels worth keeping close. Links open in your browser.</p>
+      <p class="small muted" style={{ marginTop: '-4px' }}>
+        These are favorite resources for learning and playing pool, listed because they're worth your time. Electro-Coach is an independent app:
+        it isn't affiliated with, sponsored by or endorsed by any of them, and listing them here doesn't mean they endorse it.
+      </p>
       <div class="row" style={{ gap: '8px', marginBottom: '12px' }}>
         <button class="btn" aria-pressed={editing} onClick={() => { setEditing(!editing); setAdding(null); setEditLink(null); }}>{editing ? 'Done editing' : 'Edit list'}</button>
         {editing && saved && <button class="btn" onClick={() => onGroups(null)}>Restore the starter list</button>}
