@@ -439,6 +439,16 @@ details.card > summary { font-size: 1.02rem; }
 .tchart .marker rect { fill: var(--card); stroke: var(--ink-2); stroke-width: 1.2; }
 .tchart .marker text { font-size: 9.5px; font-weight: 700; fill: var(--ink); font-family: inherit; }
 .tchart.compact .marker line { stroke-dasharray: 1 2; opacity: 0.8; }
+.railbird-role summary { cursor: pointer; }
+.railbird-role .usage-list { margin-top: 8px; }
+details.railbird-role:not(.card) { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+.feedback-card, .request-drill { gap: 10px; }
+.th-grid { margin: 8px 0 6px; display: grid; grid-template-columns: auto auto auto auto; justify-content: start; gap: 6px 10px; align-items: center; }
+.th-grid select { min-width: 0; padding-left: 8px; padding-right: 4px; }
+.th-head { color: var(--muted); font-size: 0.85em; }
+.th-join { color: var(--muted); }
+.th-rules { margin: 4px 0 8px; display: grid; gap: 3px; }
+.th-rules b { color: var(--ink-2); font-weight: 600; }
 .note-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
 .note-form label { display: grid; gap: 3px; color: var(--muted); }
 .note-form .grow { flex: 1 1 220px; }

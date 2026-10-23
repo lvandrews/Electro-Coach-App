@@ -191,7 +191,7 @@ describe('spot shot', () => {
     expect(cb.y).toBeGreaterThan(75); expect(cb.y).toBeLessThan(78);
     expect(cb.x).toBeCloseTo(5.625, 3);
     expect(cutAngle([cb.x, cb.y], [ob.x, ob.y], POCKETS.BR)).toBeCloseTo(25.4, 0);
-    const roll = d.diagram!.paths.find(p => p.kind === 'roll')!.points;
+    const roll = d.diagram!.paths.find(p => p.kind === 'cb')!.points;
     const end = roll[roll.length - 1];
     expect(end[1]).toBeCloseTo(100 - TABLE.ballR, 1);          // reaches the head rail
     expect(Math.abs(end[0] - 25)).toBeLessThan(4);              // near the middle diamond

@@ -129,6 +129,11 @@ export function HomeScreen(p: Props) {
           : <p class="small muted" style={{ margin: '6px 0 0' }}>Date changes to your game or equipment; they're flagged on the Progress charts.</p>}
       </div>
 
+      <div class="card feedback-card row" style={{ alignItems: 'center' }}>
+        <span class="grow small"><b>Feedback makes this app better.</b> Report a problem, suggest an idea, or request a drill from poolbilliards.co. All of it is welcome.</span>
+        <button class="btn btn-s" onClick={() => p.onGo('feedback')}>Send feedback</button>
+      </div>
+
       <div class="card housekeeping">
         <div class="panel-title" style={{ marginTop: 0 }}>Housekeeping</div>
         <div class="small">{p.data.shots.size ? `${int(p.data.shots.size - p.data.exclusions.size)} shots kept.` : 'No shots yet.'} Last Railbird import: {lastImport ? ago(lastImport) : 'never'}. <button class="link-btn" onClick={() => p.onGo('import')}>Import</button></div>

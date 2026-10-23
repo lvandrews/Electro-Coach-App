@@ -6,6 +6,7 @@ import { platformName, usageConfigured, usageOn } from '../usage';
 import { APP_VERSION, REPO_URL } from '../version';
 import { fmtDate } from './format';
 import type { Tab } from './nav';
+import { RailbirdRole } from './RailbirdRole';
 
 const PLATFORM_LABEL: Record<string, string> = {
   android: 'Android app', ios: 'iPhone app', 'iphone-web': 'iPhone web version', 'iphone-home-screen': 'iPhone home-screen app',
@@ -13,14 +14,6 @@ const PLATFORM_LABEL: Record<string, string> = {
 };
 const versionText = () => (APP_VERSION === 'web' || APP_VERSION === 'dev' ? '' : `Version ${APP_VERSION} · `) + (PLATFORM_LABEL[platformName()] ?? platformName());
 
-/** A new GitHub issue with the app version filled in; nothing else about the person is added. */
-export function feedbackUrl(kind: 'problem' | 'idea'): string {
-  const title = kind === 'problem' ? 'Problem: ' : 'Idea: ';
-  const body = kind === 'problem'
-    ? `**What happened?**\n\n\n**What did you expect?**\n\n\n**Steps to get there (if you know them)**\n\n\n---\nElectro-Coach ${APP_VERSION} · ${platformName()}`
-    : `**What would help?**\n\n\n**How would you use it?**\n\n\n---\nElectro-Coach ${APP_VERSION} · ${platformName()}`;
-  return `${REPO_URL}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
-}
 
 function startDownload(r: ReleaseInfo) { openExternal(r.apkUrl ?? r.pageUrl); }
 
@@ -98,13 +91,9 @@ export function AboutScreen({ onGo }: { onGo: (t: Tab) => void }) {
 
       <div class="card">
         <h3>Feedback</h3>
-        <p class="small muted" style={{ marginTop: 0 }}>Problems and ideas go to the project's GitHub page as issues. You need a free GitHub account,
-          and what you write there is public, so leave out anything private. The app version is filled in for you.</p>
-        <div class="row" style={{ gap: '8px' }}>
-          <button class="btn primary" onClick={() => openExternal(feedbackUrl('problem'))}>Report a problem</button>
-          <button class="btn" onClick={() => openExternal(feedbackUrl('idea'))}>Suggest an idea</button>
-          <button class="btn" onClick={() => openExternal(`${REPO_URL}/issues`)}>See open reports</button>
-        </div>
+        <p class="small" style={{ marginTop: 0 }}>Feedback is wanted and makes a real difference: problems, ideas and drills you’d like to see.
+          To request a drill, find it on poolbilliards.co and paste the link.</p>
+        <button class="btn primary" onClick={() => onGo('feedback')}>Feedback and drill requests</button>
       </div>
 
       <div class="card">
@@ -116,6 +105,8 @@ export function AboutScreen({ onGo }: { onGo: (t: Tab) => void }) {
         </p>
         {usageConfigured() && <button class="btn btn-s" onClick={() => onGo('settings')}>Usage counts in Settings</button>}
       </div>
+
+      <RailbirdRole />
 
       <div class="card">
         <h3>Independent app</h3>

@@ -15,14 +15,21 @@ const X = (x: number) => RAIL + PAD + x;
 const Y = (y: number) => RAIL + PAD + (TABLE.h - y);
 const pts = (p: Pt[]) => p.map(([x, y]) => `${X(x).toFixed(2)},${Y(y).toFixed(2)}`).join(' ');
 
+// Lines: the aim (shot) line, object-ball paths, guides.
 const PATH_STYLE: Record<string, { stroke: string; width: number; dash?: string; opacity?: number }> = {
   aim: { stroke: '#4c5a60', width: 0.35, dash: '1 0.8', opacity: 0.9 },
   ob: { stroke: '#d99a12', width: 0.45, dash: '1.6 0.8' },
-  stun: { stroke: '#1f6fd1', width: 0.55 },
-  roll: { stroke: '#d4552b', width: 0.55 },
-  draw: { stroke: '#7b4cc4', width: 0.55 },
   guide: { stroke: '#f3ead3', width: 0.3, dash: '0.8 1', opacity: 0.55 },
 };
+// Cue ball travel: a translucent band one ball wide, drawn under the lines. White for the
+// plain cue ball path (and stun / tangent line); colored for follow and draw.
+const BAND_STYLE: Record<string, { fill: string; opacity: number }> = {
+  cb: { fill: '#ffffff', opacity: 0.3 },
+  stun: { fill: '#ffffff', opacity: 0.3 },
+  roll: { fill: '#ff5c5c', opacity: 0.55 },
+  draw: { fill: '#b98cff', opacity: 0.5 },
+};
+const isBand = (k: string) => k in BAND_STYLE;
 const ZONE_FILL = { good: 'rgba(60,190,90,0.5)', caution: 'rgba(255,200,70,0.55)' };
 const RAY_STROKE = { good: '#2ea043', caution: '#e3a008', bad: '#d1342f' };
 const BALL_COLORS = ['#f2c230', '#2160c4', '#d23a2f', '#6b3fa0', '#f07a1f', '#1d8a4a', '#7a2b1b', '#1a1a1a', '#f2c230'];
@@ -90,7 +97,12 @@ export function TableDiagram({ spec, title, maxWidth, showLabels = true, onTap, 
         {sequence && numbered.length > 1 && (
           <polyline points={pts(numbered.map(b => [b.x, b.y]))} fill="none" stroke="#f3ead3" stroke-width={0.3} stroke-dasharray="0.6 0.9" opacity={0.7} />
         )}
-        {spec.paths.map((p, i) => {
+        {spec.paths.filter(p => isBand(p.kind)).map((p, i) => {
+          const st = BAND_STYLE[p.kind];
+          return <polyline key={`b${i}`} points={pts(p.points)} fill="none" stroke={st.fill} stroke-width={2 * R}
+            opacity={st.opacity} stroke-linecap="round" stroke-linejoin="round" />;
+        })}
+        {spec.paths.filter(p => !isBand(p.kind)).map((p, i) => {
           const st = PATH_STYLE[p.kind];
           return <polyline key={i} points={pts(p.points)} fill="none" stroke={st.stroke} stroke-width={st.width}
             stroke-dasharray={st.dash} opacity={st.opacity ?? 1} stroke-linecap="round" stroke-linejoin="round" />;
@@ -125,11 +137,12 @@ export function TableDiagram({ spec, title, maxWidth, showLabels = true, onTap, 
 }
 
 export const DIAGRAM_KEY = [
+  { kind: 'aim', label: 'Shot (aim) line' },
   { kind: 'ob', label: 'Object ball path' },
+  { kind: 'cb', label: 'Cue ball path' },
   { kind: 'stun', label: 'Stun / tangent line' },
-  { kind: 'roll', label: 'Rolling cue ball' },
+  { kind: 'roll', label: 'Follow (rolling cue ball)' },
   { kind: 'draw', label: 'Draw' },
-  { kind: 'aim', label: 'Aim line' },
 ] as const;
 
 export function DiagramKey({ kinds }: { kinds: string[] }) {
@@ -138,10 +151,15 @@ export function DiagramKey({ kinds }: { kinds: string[] }) {
   return (
     <div class="legend dia-key">
       {shown.map(k => {
+        const band = BAND_STYLE[k.kind];
         const st = PATH_STYLE[k.kind];
         return (
           <span key={k.kind}>
-            <svg width="22" height="8" aria-hidden="true"><line x1="1" x2="21" y1="4" y2="4" stroke={st.stroke} stroke-width="2.4" stroke-dasharray={st.dash ? '4 3' : undefined} stroke-linecap="round" /></svg>
+            {band
+              ? <svg width="26" height="12" aria-hidden="true"><rect x="0" y="0" width="26" height="12" rx="2" fill="#2f6f63" />
+                  <line x1="6" x2="20" y1="6" y2="6" stroke={band.fill} stroke-width="7" opacity={band.opacity} stroke-linecap="round" /></svg>
+              : <svg width="26" height="12" aria-hidden="true"><rect x="0" y="0" width="26" height="12" rx="2" fill="#2f6f63" />
+                  <line x1="3" x2="23" y1="6" y2="6" stroke={st.stroke} stroke-width="2" stroke-dasharray={st.dash ? '4 3' : undefined} stroke-linecap="round" /></svg>}
             {k.label}
           </span>
         );

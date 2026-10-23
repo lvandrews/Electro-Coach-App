@@ -1,4 +1,5 @@
 import { useRef, useState } from 'preact/hooks';
+import { RailbirdRole } from './RailbirdRole';
 import type { AppData, Tab } from '../app';
 import { isNative } from '../platform';
 import { localDate, type CaptureRow } from '../engine/tally';
@@ -35,6 +36,7 @@ export function ImportScreen({ data, busy, lastReport, capture, onFiles, onGo }:
         Railbird is optional. Without it you still have drills and tallies, timed practice, straight pool scoring, the shot clock,
         FargoRate, the journal and the pre-shot routine. Railbird data adds the analysis: progress, the practice plan, heat maps, the speed profile and your best shots.
       </p>}
+      <RailbirdRole open={empty} />
 
       <div
         class={`drop ${over ? 'over' : ''}`}

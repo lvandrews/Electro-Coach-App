@@ -3,7 +3,7 @@ import { trackOnce } from '../usage';
 import { setVolume, sounds, unlockAudio } from './sound';
 import { useWakeLock } from './TallyScreen';
 import {
-  RULE_SETS, callPush, canPassBack, canPush, expire, extend, extensionsLeft, migrateSettings, newRack, passBack, pause,
+  RULE_SETS, applyRules, callPush, extensionsAllowed, setHillHill, canPassBack, canPush, expire, extend, extensionsLeft, migrateSettings, newRack, passBack, pause,
   remaining, restore, rulesFor, shotPlayed, snapshot, stageLabel, start, turnOver,
   type ClockRules, type ClockSettings, type ClockState, type Player, type RuleSetId, type Snapshot,
 } from '../engine/shotclock';
@@ -39,6 +39,10 @@ export function ShotClock() {
   const now = () => performance.now();
 
   useEffect(() => { try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch { /* ignore */ } setVolume(cfg.volume); }, [cfg]);
+  // A new rule set (or custom time) applies at once to a shot that hasn't started yet.
+  const rulesKey = JSON.stringify(rules);
+  const lastRules = useRef(rulesKey);
+  useEffect(() => { if (lastRules.current === rulesKey) return; lastRules.current = rulesKey; setS(cur => applyRules(cur, rules)); }, [rulesKey]);
   useEffect(() => { try { localStorage.setItem(STATE_KEY, JSON.stringify(snapshot(s, now()))); } catch { /* ignore */ } }, [s]);
 
   /** Apply an action, keeping the previous state for Undo. */
@@ -87,6 +91,7 @@ export function ShotClock() {
   const doPush = () => { unlockAudio(); act(callPush(s)); };
   const doPassBack = () => { unlockAudio(); act(passBack(s, rules, now()), 'none'); sounds.start(); };
   const doUndo = () => { unlockAudio(); const snap = undo.current.pop(); if (!snap) return; const back = restore(snap, now()); lastSec.current = Math.ceil(remaining(back, now()) / 1000); setS(back); sounds.tap(); };
+  const doHillHill = () => { unlockAudio(); act(setHillHill(s, !s.hillHill)); };
   const doNewRack = (p: Player) => { unlockAudio(); act(newRack(rules, p, s)); setPickBreaker(false); };
 
   // Laptop keys: Space start / shot played, P pause, E extension (shooter), T turn over, U undo, R new rack.
@@ -149,15 +154,19 @@ export function ShotClock() {
             <div key={p} class={`clock-player p${p} ${s.shooter === p ? 'at-table' : ''}`}>
               <div class="cp-name">{name(p)}</div>
               <div class="cp-tag">{s.shooter === p ? '● At the table' : ' '}</div>
-              <button class="btn cp-ext" disabled={left <= 0 || s.phase === 'expired' || rules.extensionsPerRack === 0} onClick={() => doExtend(p)}
+              <button class="btn cp-ext" disabled={left <= 0 || s.phase === 'expired' || extensionsAllowed(s, rules) === 0} onClick={() => doExtend(p)}
                 aria-label={`Extension for ${name(p)}: ${left} left`}>
                 <span class="cp-ext-main">＋{rules.extension} s</span>
-                <span class="cp-ext-sub">{rules.extensionsPerRack === 0 ? 'no extensions' : `extension · ${left} left`}</span>
+                <span class="cp-ext-sub">{extensionsAllowed(s, rules) === 0 ? 'no extensions' : `extension · ${left} left`}</span>
               </button>
             </div>
           );
         })}
       </div>
+      {rules.hillHill > 0 && (
+        <button class={`btn clock-wide ${s.hillHill ? 'primary' : ''}`} aria-pressed={!!s.hillHill} onClick={doHillHill}>
+          {s.hillHill ? `✓ Hill-hill: ${rules.hillHill} extensions each` : `Hill-hill? Tap for ${rules.hillHill} extensions each`}</button>
+      )}
 
       <div class="clock-row">
         <button class="btn clock-big" onClick={doTurn}>⇄ Turn over</button>
@@ -208,6 +217,7 @@ function Settings({ cfg, onCfg }: { cfg: ClockSettings; onCfg: (c: ClockSettings
         }}>
           <option value="matchroom">{RULE_SETS.matchroom.label}</option>
           <option value="pbs">{RULE_SETS.pbs.label}</option>
+          <option value="wpba">{RULE_SETS.wpba.label}</option>
           <option value="custom">Custom</option>
         </select>
       </label>
@@ -220,6 +230,7 @@ function Settings({ cfg, onCfg }: { cfg: ClockSettings; onCfg: (c: ClockSettings
         {pick('pushBack', 'Push passed back', [15, 20, 25, 30, 45, 60])}
         {pick('extension', 'Extension', [15, 20, 25, 30, 45, 60])}
         {pick('extensionsPerRack', 'Extensions per player per rack', [0, 1, 2, 3], n => String(n))}
+        {pick('hillHill', 'Extensions each when hill-hill', [0, 1, 2, 3], n => (n ? String(n) : 'No hill-hill rule'))}
         {pick('warnAt', 'Warning chime at', [10, 15, 20], n => `${n} seconds left`)}
         <label>Volume<input type="range" min={0} max={1} step={0.05} value={cfg.volume} onInput={e => onCfg({ ...cfg, volume: Number((e.target as HTMLInputElement).value) })}
           onChange={() => { unlockAudio(); sounds.tick(); }} /></label>
@@ -248,12 +259,20 @@ function Usage({ rules: r, ruleSet }: { rules: ClockRules; ruleSet: RuleSetId })
       <ul class="usage-list">
         <li>Shot: {r.shot} s. {r.breakOff ? `Break: ${r.breakOff} s.` : 'The break isn’t timed.'} First shot after the break: {r.afterBreak} s.</li>
         <li>Push out: the incoming player has {r.pushIncoming} s to accept and shoot; passed back, the player who pushed has {r.pushBack} s.</li>
-        <li>{r.extensionsPerRack === 0 ? 'No extensions.' : `${r.extensionsPerRack === 1 ? 'One' : r.extensionsPerRack} ${r.extension}-second extension${r.extensionsPerRack === 1 ? '' : 's'} per player per rack.`}</li>
+        <li>{r.extensionsPerRack === 0 ? 'No extensions.' : `${r.extensionsPerRack === 1 ? 'One' : r.extensionsPerRack} ${r.extension}-second extension${r.extensionsPerRack === 1 ? '' : 's'} per player per rack.`}
+          {r.hillHill > 0 && ` When the match is hill-hill, ${r.hillHill} each: tap Hill-hill below the players (it stays on for later racks until you turn it off).`}</li>
         <li>The clock starts when the last ball stops and stops when the cue ball is struck. Warning chime at {r.warnAt} s, a beep each of the last 5 s.</li>
         {ruleSet === 'matchroom' && <>
           <li>An extension must be called within the first 30 seconds of the shot.</li>
           <li>Running out of time is a standard foul: ball in hand to the opponent.</li>
           <li>Where there are no sound warnings, the official calls out 10 and 5 seconds.</li>
+        </>}
+        {ruleSet === 'wpba' && <>
+          <li>From the WPBA 9-Ball Rules (revised 16 May 2025). The tournament director puts a match on the clock, only between games.</li>
+          <li>The break isn’t timed. The incoming player after a push out has 60 seconds; the rules don’t give a separate pass-back time, so the clock uses the normal 40.</li>
+          <li>Ask the clock operator for an extension; it must be acknowledged. Running out of time is a foul: ball in hand to the opponent.</li>
+          <li>The operator calls 10 seconds, but not while you’re down on the shot (the app still chimes; turn the volume down if that bothers you).</li>
+          <li>The clock stops for a bridge or cue change, a referee call, or a player from another table holding you up.</li>
         </>}
         {ruleSet === 'pbs' && <>
           <li>The first shot after the break gets an extra 30 seconds; the clock isn't paused for bridge or cue ball cleaning.</li>

@@ -8,6 +8,7 @@ import type { TallySession } from '../engine/tally';
 import { estLabel } from '../engine/workout';
 import { MODE_LABEL } from '../engine/session';
 import { ADAPT_NOTE, composeFor, filmingStatus } from './sessionPlan';
+import { RailbirdRole } from './RailbirdRole';
 import type { Tier } from '../engine/ledger';
 import { rowsFor } from './ProgressScreen';
 import { Empty } from './SessionsScreen';
@@ -165,6 +166,7 @@ function SessionSettings({ p, set }: { p: Props; set: (patch: Partial<PlanSettin
         {(s.filmPerWeek ?? 2) === 0 ? 'All practice is tapped on the phone.' : `Filmed this week: ${f.done} of ${f.perWeek}. ${f.due ? `The next session films up to ${f.minutes} minutes with one Railbird recording and one tag; the rest is tapped.` : 'Done for the week: sessions are tap-only until Monday.'}`}
         {' '}With "Finish each drill", a soft chime marks the planned time and the block ends when the drill is done.
       </p>
+      <RailbirdRole bare title="Why so little filming? How Railbird fits" />
     </div>
   );
 }

@@ -113,6 +113,11 @@ export function DrillsScreen(p: DrillsProps) {
         );
       })}
 
+      <div class="notice request-drill row" style={{ alignItems: 'center' }}>
+        <span class="grow small"><b>Want a drill added?</b> Find it on poolbilliards.co and send the link. Requests are welcome.</span>
+        <button class="btn btn-s primary" onClick={() => p.onGo('feedback')}>Request a drill</button>
+      </div>
+
       <Transfer {...p} />
     </section>
   );
@@ -512,10 +517,11 @@ function LevelPanel({ drill, tallies, state }: { drill: DrillDef; tallies: Tally
           <h3 style={{ margin: 0 }}>Your level: {state.level}{state.mastered ? ' · mastered' : ''}</h3>
           <span class="small muted">{state.good ? `${state.good} of 2 at the move-up bar` : state.poor ? `${state.poor} poor set${state.poor === 1 ? '' : 's'} in a row` : ''}</span>
         </div>
-        <p class="small muted" style={{ margin: '4px 0 8px' }}>
-          Move up after two sets in a row at {Math.round(100 * th.upMake)}% made and {Math.round(100 * th.upQuality)}% quality. Move down after two in a row under {Math.round(100 * th.downMake)}% made or {Math.round(100 * th.downQuality)}% quality. One bad day never moves you down.
-          {state.changed && <> Last move: Level {state.changed.from} → {state.changed.to} on {fmtDate(state.changed.at, { day: 'numeric', month: 'short' })}.</>}
-        </p>
+        <div class="small muted th-rules">
+          <div><b>Move up:</b> two sets in a row at {Math.round(100 * th.upMake)}% made and {Math.round(100 * th.upQuality)}% quality.</div>
+          <div><b>Move down:</b> two sets in a row under {Math.round(100 * th.downMake)}% made or {Math.round(100 * th.downQuality)}% quality. One bad day never moves you down.</div>
+          {state.changed && <div>Last move: Level {state.changed.from} → {state.changed.to} on {fmtDate(state.changed.at, { day: 'numeric', month: 'short' })}.</div>}
+        </div>
         <div class="row" style={{ gap: '6px', alignItems: 'center' }}>
           <span class="small">Set the level yourself:</span>
           <div class="seg" role="group" aria-label="Set level">
@@ -557,13 +563,18 @@ function LevelPanel({ drill, tallies, state }: { drill: DrillDef; tallies: Tally
 
 function ThresholdFields({ value, onChange }: { value: Thresholds; onChange: (v: Thresholds) => void }) {
   const f = (k: keyof Thresholds, label: string) => (
-    <label class="small">{label}<select value={String(Math.round(100 * value[k]))} onChange={e => onChange({ ...value, [k]: Number((e.target as HTMLSelectElement).value) / 100 })}>
-      {[40, 50, 60, 65, 70, 75, 80, 85, 90, 95].map(n => <option key={n} value={n}>{n}%</option>)}</select></label>
+    <select aria-label={label} value={String(Math.round(100 * value[k]))} onChange={e => onChange({ ...value, [k]: Number((e.target as HTMLSelectElement).value) / 100 })}>
+      {[40, 50, 60, 65, 70, 75, 80, 85, 90, 95].map(n => <option key={n} value={n}>{n}%</option>)}</select>
   );
+  // One line each: what moves you up, then what moves you down.
   return (
-    <div class="note-form" style={{ margin: '8px 0' }}>
-      {f('upMake', 'Move up: made at least')}{f('upQuality', 'and quality at least')}
-      {f('downMake', 'Move down: made under')}{f('downQuality', 'or quality under')}
+    <div class="small">
+      <div class="th-grid">
+        <span /><span class="th-head">Made</span><span /><span class="th-head">Quality</span>
+        <b>Move up</b>{f('upMake', 'Move up: made at least')}<span class="th-join">and</span>{f('upQuality', 'Move up: quality at least')}
+        <b>Move down</b>{f('downMake', 'Move down: made under')}<span class="th-join">or</span>{f('downQuality', 'Move down: quality under')}
+      </div>
+      <p class="muted" style={{ margin: '0 0 8px' }}>Move up needs at least both numbers; move down needs under either one.</p>
     </div>
   );
 }

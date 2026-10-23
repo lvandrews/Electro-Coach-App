@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   RULE_SETS, callPush, canPassBack, canPush, expire, extend, extensionsLeft, migrateSettings, newRack, passBack, pause,
-  remaining, restore, shotPlayed, snapshot, start, turnOver,
+  applyRules, remaining, restore, setHillHill, shotPlayed, snapshot, start, turnOver,
 } from '../src/engine/shotclock';
 
 const M = RULE_SETS.matchroom.rules;
@@ -68,6 +68,31 @@ describe('shot clock: Matchroom flow', () => {
   it('skips the break clock when the rules do not time it', () => {
     const s = newRack(RULE_SETS.pbs.rules, 1);
     expect(s.stage).toBe('afterBreak'); expect(s.remainingMs).toBe(60_000); expect(s.shooter).toBe(1);
+  });
+});
+
+describe('WPBA rules', () => {
+  const W = RULE_SETS.wpba.rules;
+  it('60 s after the break, then 40 s shots and a 40 s extension', () => {
+    let s = newRack(W, 0);
+    expect(s.stage).toBe('afterBreak'); expect(s.remainingMs).toBe(60_000);
+    s = shotPlayed(start(s, W, 0), W);
+    expect(s.remainingMs).toBe(40_000);
+    s = extend(s, W, 0); expect(s.remainingMs).toBe(80_000); expect(extensionsLeft(s, W, 0)).toBe(0);
+  });
+  it('switching to WPBA before the break drops the break clock', () => {
+    const s = applyRules(newRack(M, 0), W);
+    expect(s.stage).toBe('afterBreak'); expect(s.remainingMs).toBe(60_000);
+    const run = start(newRack(M, 0), M, 0);
+    expect(applyRules(run, W)).toBe(run);   // a running shot keeps its time
+  });
+  it('two extensions each when hill-hill, carried to the next rack', () => {
+    let s = setHillHill(newRack(W, 0), true);
+    expect(extensionsLeft(s, W, 1)).toBe(2);
+    s = newRack(W, 1, extend(s, W, 1));
+    expect(s.hillHill).toBe(true); expect(extensionsLeft(s, W, 1)).toBe(2);
+    // rules without a hill-hill allowance ignore the switch
+    expect(extensionsLeft(setHillHill(newRack(M, 0), true), M, 0)).toBe(1);
   });
 });
 

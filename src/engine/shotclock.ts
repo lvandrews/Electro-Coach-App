@@ -6,7 +6,7 @@
 // the next shot. Turn over switches who is at the table; a time foul passes the table to
 // the other player automatically.
 
-export type RuleSetId = 'matchroom' | 'pbs' | 'custom';
+export type RuleSetId = 'matchroom' | 'pbs' | 'wpba' | 'custom';
 
 export interface ClockRules {
   shot: number;              // seconds per shot
@@ -16,17 +16,24 @@ export interface ClockRules {
   pushBack: number;          // the push is passed back: the player who pushed
   extension: number;         // seconds per extension
   extensionsPerRack: number; // per player
+  hillHill: number;          // extensions per player per rack when the match is hill-hill; 0 = no special rule
   warnAt: number;            // warning chime, seconds left
 }
 
 export const RULE_SETS: Record<Exclude<RuleSetId, 'custom'>, { label: string; short: string; rules: ClockRules }> = {
   matchroom: {
     label: 'Matchroom (World Nineball Tour)', short: 'Matchroom',
-    rules: { shot: 30, breakOff: 60, afterBreak: 60, pushIncoming: 60, pushBack: 30, extension: 30, extensionsPerRack: 1, warnAt: 10 },
+    rules: { shot: 30, breakOff: 60, afterBreak: 60, pushIncoming: 60, pushBack: 30, extension: 30, extensionsPerRack: 1, hillHill: 0, warnAt: 10 },
   },
   pbs: {
     label: 'Predator Pro Billiard Series', short: 'PBS',
-    rules: { shot: 30, breakOff: 0, afterBreak: 60, pushIncoming: 60, pushBack: 30, extension: 30, extensionsPerRack: 1, warnAt: 10 },
+    rules: { shot: 30, breakOff: 0, afterBreak: 60, pushIncoming: 60, pushBack: 30, extension: 30, extensionsPerRack: 1, hillHill: 0, warnAt: 10 },
+  },
+  // WPBA 9-Ball Rules, revised 16 May 2025: 60 s after the break and after a push out, 40 s
+  // otherwise; one 40 s extension per player per game, two each when the match is hill-hill.
+  wpba: {
+    label: 'WPBA (Women’s Professional Billiard Association)', short: 'WPBA',
+    rules: { shot: 40, breakOff: 0, afterBreak: 60, pushIncoming: 60, pushBack: 40, extension: 40, extensionsPerRack: 1, hillHill: 2, warnAt: 10 },
   },
 };
 
@@ -45,6 +52,7 @@ export interface ClockState {
   extUsed: [number, number];
   pushCalled: boolean;   // the first shot after the break was declared a push out
   rack: number;
+  hillHill?: boolean;    // the match is hill-hill (rules with a hill-hill extension allowance)
 }
 
 const other = (p: Player): Player => (p === 0 ? 1 : 0);
@@ -65,12 +73,24 @@ function at(s: ClockState, rules: ClockRules, stage: Stage, shooter: Player, pha
 /** A new rack: the breaker is at the table; the break clock if the rules time it. */
 export function newRack(rules: ClockRules, breaker: Player, prev?: ClockState): ClockState {
   const base: ClockState = { shooter: breaker, breaker, stage: 'break', phase: 'ready', duration: 0, remainingMs: 0, endAt: 0,
-    extUsed: [0, 0], pushCalled: false, rack: (prev?.rack ?? 0) + 1 };
+    extUsed: [0, 0], pushCalled: false, rack: (prev?.rack ?? 0) + 1, hillHill: prev?.hillHill ?? false };
   return at(base, rules, rules.breakOff > 0 ? 'break' : 'afterBreak', breaker, 'ready');
 }
 
 export function remaining(s: ClockState, now: number): number {
   return s.phase === 'running' ? Math.max(0, s.endAt - now) : s.remainingMs;
+}
+
+/**
+ * The rules changed (a different rule set or a custom time): a shot that is waiting to start
+ * takes the new time at once; a shot already on the clock keeps its time, and the new rules
+ * apply from the next shot.
+ */
+export function applyRules(s: ClockState, rules: ClockRules): ClockState {
+  if (s.phase !== 'ready' && s.phase !== 'played') return s;
+  const stage: Stage = s.stage === 'break' && rules.breakOff <= 0 ? 'afterBreak' : s.stage;
+  const secs = stageSeconds(rules, stage);
+  return secs === s.duration && stage === s.stage ? s : { ...s, stage, duration: secs, remainingMs: secs * 1000 };
 }
 
 /** Tap the clock face: start the shot that is waiting. From a time foul, the other player gets the table. */
@@ -101,9 +121,13 @@ export function expire(s: ClockState): ClockState {
   return s.phase === 'running' ? { ...s, phase: 'expired', remainingMs: 0, endAt: 0 } : s;
 }
 
+/** Extensions each player gets this rack: more when the match is hill-hill, if the rules say so. */
+export const extensionsAllowed = (s: ClockState, rules: ClockRules) => (s.hillHill && rules.hillHill > 0 ? rules.hillHill : rules.extensionsPerRack);
 export function extensionsLeft(s: ClockState, rules: ClockRules, p: Player): number {
-  return Math.max(0, rules.extensionsPerRack - s.extUsed[p]);
+  return Math.max(0, extensionsAllowed(s, rules) - s.extUsed[p]);
 }
+/** Mark the match hill-hill (or not). Stays set for later racks until turned off. */
+export const setHillHill = (s: ClockState, on: boolean): ClockState => ({ ...s, hillHill: on });
 
 /**
  * A player takes an extension. Tapping your own extension also makes you the shooter,
@@ -176,13 +200,13 @@ export function migrateSettings(raw: unknown): ClockSettings {
   const num = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
   const names = Array.isArray(r.names) && r.names.length === 2 ? [String(r.names[0]), String(r.names[1])] as [string, string] : fresh.names;
   const volume = num(r.volume, fresh.volume);
-  if (r.ruleSet === 'matchroom' || r.ruleSet === 'pbs' || r.ruleSet === 'custom') {
+  if (r.ruleSet === 'matchroom' || r.ruleSet === 'pbs' || r.ruleSet === 'wpba' || r.ruleSet === 'custom') {
     const c = (r.custom ?? {}) as Record<string, unknown>;
     const d = RULE_SETS.matchroom.rules;
     return { ruleSet: r.ruleSet, volume, names, custom: {
       shot: num(c.shot, d.shot), breakOff: num(c.breakOff, d.breakOff), afterBreak: num(c.afterBreak, d.afterBreak),
       pushIncoming: num(c.pushIncoming, d.pushIncoming), pushBack: num(c.pushBack, d.pushBack), extension: num(c.extension, d.extension),
-      extensionsPerRack: num(c.extensionsPerRack, d.extensionsPerRack), warnAt: num(c.warnAt, d.warnAt) } };
+      extensionsPerRack: num(c.extensionsPerRack, d.extensionsPerRack), hillHill: num(c.hillHill, d.hillHill), warnAt: num(c.warnAt, d.warnAt) } };
   }
   // Settings from before rule sets: shot, firstShot, extension, extensionsPerRack, warnAt.
   const old = { shot: num(r.shot, 30), firstShot: num(r.firstShot, 60), extension: num(r.extension, 30), per: num(r.extensionsPerRack, 1), warnAt: num(r.warnAt, 10) };

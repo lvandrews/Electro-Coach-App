@@ -10,7 +10,9 @@ export type DiagKey = 'make' | 'thick' | 'thin' | 'rail' | 'pocket';
 export type Side = 'L' | 'R';
 
 export interface DiagramBall { kind: 'cb' | 'ob'; x: number; y: number; num?: number; label?: string }
-export interface DiagramPath { kind: 'ob' | 'stun' | 'roll' | 'draw' | 'aim' | 'guide'; points: Pt[]; label?: string }
+// Cue ball travel (cb, stun, roll, draw) is drawn as a ball-wide translucent band under the
+// aim and object-ball lines, so a follow or draw path along the shot line doesn't hide it.
+export interface DiagramPath { kind: 'ob' | 'cb' | 'stun' | 'roll' | 'draw' | 'aim' | 'guide'; points: Pt[]; label?: string }
 export interface DiagramZone { polygon: Pt[]; tone: 'good' | 'caution' }
 export interface DiagramRay { from: Pt; to: Pt; label: string; tone: 'good' | 'caution' | 'bad' }
 export interface DiagramSpec {
@@ -147,7 +149,7 @@ const spot: DiagramSpec = {
   balls: [ob(SPOT), cb(SPOT_CB)],
   paths: [
     ...shot(SPOT_CB, SPOT, 'BR'),
-    { kind: 'roll', points: cueBallPath(SPOT_CB, SPOT, POCKETS.BR, { spin: 1, mph: 10, cushions: 2 }) },
+    { kind: 'cb', points: cueBallPath(SPOT_CB, SPOT, POCKETS.BR, { spin: 1, mph: 10, cushions: 2 }) },
   ],
   notes: [
     `Cut ≈ ${cutAngle(SPOT_CB, SPOT, POCKETS.BR).toFixed(0)}° from this spot, close to a half-ball hit. The mirror shot from the right side goes into the bottom-left corner.`,

@@ -72,6 +72,8 @@ export function Drawer({ open, current, drills, notes, resources, onPick, onClos
           ) : (
             <>
               <Item label="Home" active={current === 'home'} onClick={() => onPick({ kind: 'dest', dest: DESTS[0] })} />
+              <Item label="Feedback and drill requests" sub="Problems, ideas, drills you’d like: all welcome" active={current === 'feedback'}
+                onClick={() => onPick({ kind: 'dest', dest: DESTS.find(d => d.id === 'feedback')! })} />
               {GROUPS.map(g => (
                 <DrawerGroup key={g} title={g}>
                   {DESTS.filter(d => d.group === g).map(d => <Item key={d.id} label={d.label} active={!d.play && current === d.tab} onClick={() => onPick({ kind: 'dest', dest: d })} />)}

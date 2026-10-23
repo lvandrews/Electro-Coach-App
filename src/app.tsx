@@ -47,7 +47,11 @@ import { drillLabel, shotBand } from './engine/usage';
 import { UsageNotice } from './ui/Usage';
 import { drillLevel } from './ui/progPrefs';
 import { AboutScreen, UpdateBanner } from './ui/AboutScreen';
+import { FeedbackScreen } from './ui/FeedbackScreen';
 import { bowlingCard } from './engine/games';
+import { App as CapApp } from '@capacitor/app';
+import { isNative } from './platform';
+import { backAction, navStep, viewKey, type View } from './nav';
 
 const BUILTIN_IDS = new Set(BUILTIN_DRILLS.map(d => d.id));
 
@@ -283,6 +287,55 @@ export function App() {
   const go = (t: Tab) => { setTab(t); setDrawer(false); if (t !== 'drills') setTallyOpen(false); setFocus(null); window.scrollTo(0, 0); };
   /** Go to a screen and open or scroll to one part of it. */
   const goFocus = (t: Tab, f: string) => { go(t); setFocus(f); };
+
+  // ----- Back: every screen change is a history entry (see nav.ts) -----
+  const navKeys = useRef<string[]>([]);
+  const navIdx = useRef(0);
+  const replaceNext = useRef(false);
+  const hasTally = useRef(false); hasTally.current = !!activeTally;
+  useEffect(() => {
+    const view: View = { tab, drillOpen, tallyOpen };
+    const key = viewKey(view);
+    const first = !navKeys.current.length;
+    const step = first ? 'replace' : navStep(navKeys.current, navIdx.current, key, replaceNext.current);
+    replaceNext.current = false;
+    try {
+      if (step === 'back') { history.back(); return; }   // popstate below brings the index along
+      if (step === 'push') { navIdx.current++; navKeys.current = navKeys.current.slice(0, navIdx.current); }
+      if (step === 'push' || step === 'replace') {
+        navKeys.current[navIdx.current] = key;
+        (step === 'push' ? history.pushState : history.replaceState).call(history, { ec: view, idx: navIdx.current }, '');
+      }
+    } catch { /* history unavailable: Back simply leaves the app */ }
+  }, [tab, drillOpen, tallyOpen]);
+  useEffect(() => {
+    const onPop = (e: PopStateEvent) => {
+      const st = e.state as { ec?: View; idx?: number } | null;
+      if (!st?.ec) return;
+      // A tally that has since finished: skip past its entry.
+      if (st.ec.tallyOpen && !hasTally.current && (st.idx ?? 0) > 0) { navIdx.current = st.idx ?? 0; history.back(); return; }
+      navIdx.current = st.idx ?? 0;
+      navKeys.current[navIdx.current] = viewKey(st.ec);
+      setTab(st.ec.tab as Tab); setDrillOpen(st.ec.drillOpen); setTallyOpen(st.ec.tallyOpen);
+      setDrawer(false); setFocus(null); window.scrollTo(0, 0);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+  const backRef = useRef(() => {});
+  backRef.current = () => {
+    const a = backAction(drawer, navIdx.current, tab);
+    if (a === 'closeDrawer') setDrawer(false);
+    else if (a === 'back') history.back();
+    else if (a === 'home') { replaceNext.current = true; go('home'); }
+    else void CapApp.exitApp();
+  };
+  useEffect(() => {
+    if (!isNative()) return;
+    const h = CapApp.addListener('backButton', () => backRef.current());
+    return () => { void h.then(x => x.remove()); };
+  }, []);
+
   const showTally = tab === 'drills' && tallyOpen && activeTally && activeDrill;
   const now = useNow(1000);
   const status = session ? sessionStatus(session, tallies, games, drills, now) : null;
@@ -381,6 +434,7 @@ export function App() {
               onBaseline={updateBaseline} onPlan={updatePlan} onPins={updatePins} onOpenDrill={openDrill} onGo={go} />
           : tab === 'settings' ? <SettingsScreen data={data} drills={drills} tallies={tallies} device={device} onDevice={renameDevice} onRules={updateRules} onRestored={reload} onBackedUp={setLastBackup} onGo={go} />
           : tab === 'about' ? <AboutScreen onGo={go} />
+          : tab === 'feedback' ? <FeedbackScreen focus={focus} />
           : null}
       </main>
 

@@ -6,7 +6,7 @@ import type { PlayMode } from './PlayScreen';
 export type Tab =
   | 'home' | 'plan' | 'drills' | 'history' | 'session'
   | 'play' | 'progress' | 'model' | 'table' | 'data' | 'sessions'
-  | 'journal' | 'routine' | 'resources' | 'fargo' | 'bowling' | 'import' | 'settings' | 'about';
+  | 'journal' | 'routine' | 'resources' | 'fargo' | 'bowling' | 'import' | 'settings' | 'about' | 'feedback';
 
 export type Group = 'Practice' | 'Play' | 'Analysis' | 'Reference' | 'Data and settings';
 
@@ -14,6 +14,7 @@ export interface Dest { id: string; label: string; short: string; group: Group |
 
 export const DESTS: Dest[] = [
   { id: 'home', label: 'Home', short: 'Home', group: null, tab: 'home', keywords: 'dashboard today next last recent' },
+  { id: 'feedback', label: 'Feedback and drill requests', short: 'Feedback', group: null, tab: 'feedback', keywords: 'feedback bug problem report issue idea suggest request drill poolbilliards help contact' },
   { id: 'plan', label: 'Practice plan and session timer', short: 'Plan', group: 'Practice', tab: 'plan', keywords: 'targets session timer workout makes lost coaching' },
   { id: 'drills', label: 'Drills', short: 'Drills', group: 'Practice', tab: 'drills', keywords: 'library tally tap diagram tag layout transitions spot x-drill mirror' },
   { id: 'history', label: 'Session history', short: 'History', group: 'Practice', tab: 'history', keywords: 'log past recent tallies games practice' },
@@ -31,7 +32,7 @@ export const DESTS: Dest[] = [
   { id: 'resources', label: 'Resources', short: 'Links', group: 'Reference', tab: 'resources', keywords: 'links websites youtube channels videos instruction railbird salotto poolbilliards' },
   { id: 'import', label: 'Import Railbird data', short: 'Import', group: 'Data and settings', tab: 'import', keywords: 'csv export upload' },
   { id: 'settings', label: 'Settings and backup', short: 'Settings', group: 'Data and settings', tab: 'settings', keywords: 'appearance theme dark light color backup restore rules delete bottom bar reminders notifications nudge recap usage analytics privacy' },
-  { id: 'about', label: 'About, updates and feedback', short: 'About', group: 'Data and settings', tab: 'about', keywords: 'version update upgrade download apk release feedback bug problem report issue idea suggest copyright license privacy help contact' },
+  { id: 'about', label: 'About and updates', short: 'About', group: 'Data and settings', tab: 'about', keywords: 'version update upgrade download apk release copyright license privacy railbird independent' },
 ];
 export const GROUPS: Group[] = ['Practice', 'Play', 'Analysis', 'Reference', 'Data and settings'];
 
@@ -45,7 +46,7 @@ const PLAY: Slot = { id: 'play', label: 'Play', tabs: ['play'], go: 'play' };
 export const SLOT_CHOICES: Slot[] = [
   { id: 'home', label: 'Home', tabs: ['home'], go: 'home' },
   PRACTICE, PLAY,
-  ...DESTS.filter(d => !['home', 'clock', 'straight', 'bowling'].includes(d.id)).map(d => ({ id: d.id, label: d.short, tabs: [d.tab], go: d.tab })),
+  ...DESTS.filter(d => !['home', 'feedback', 'clock', 'straight', 'bowling'].includes(d.id)).map(d => ({ id: d.id, label: d.short, tabs: [d.tab], go: d.tab })),
 ];
 export const DEFAULT_BAR = ['home', 'practice', 'play', 'progress'];
 export const slotById = (id: string) => SLOT_CHOICES.find(s => s.id === id) ?? null;

@@ -40,6 +40,24 @@ CSV exports and you get progress against a yardstick, a practice plan ranked by 
 table heat maps, a speed profile and your most reliable shots. The aim is to get more out of
 Railbird sessions and to point each one at what to work on next.
 
+**Railbird is a companion, not a chore.** You don't need to film every time you play:
+
+- **Film free play or playing the ghost.** Real games give the widest mix of shots, the ones
+  you actually face, so that's where the most useful data comes from.
+- **Film a drill now and then to fill gaps.** Most players steer around shots they don't like;
+  a short filmed drill makes sure those shots show up in the data too.
+- **One or two 20–30 minute recordings a week is plenty.** The rest of practice is tapped on
+  the phone (or not recorded at all), and the practice plan keeps filming to the number of
+  sessions a week you choose.
+- **Electro-Coach does the rest:** it turns what Railbird recorded into a plan aimed at the
+  shots that cost you the most makes, builds that into steady practice habits, and shows
+  whether it's working.
+
+**Feedback is wanted.** Problems, ideas and drill requests all shape what comes next. To ask
+for a drill, find it on [poolbilliards.co](https://www.poolbilliards.co/) and send the link:
+in the app, open **Feedback and drill requests** (top of the drawer, or the card on Home and
+the Drills page), or [open an issue](https://github.com/lvandrews/Electro-Coach-App/issues/new) here.
+
 **Independent.** Electro-Coach is an independent project. It isn't affiliated with, sponsored
 by or endorsed by Railbird, FargoRate or any site or channel listed in its Resources page;
 those are listed because they're good resources for the game. Product names belong to their
@@ -63,6 +81,8 @@ choose your own in Settings → Appearance) and **More**. More, the ☰ button, 
 left edge opens the drawer: every page, grouped, with a search box that also finds drills,
 journal entries and sections of the pre-shot routine. Inside Practice, chips switch between
 Plan, Session, Drills and History. With large system text the bottom bar scrolls sideways.
+The Android back gesture (or back button) returns to the previous screen and closes the
+drawer; from Home it leaves the app. On a computer the browser's Back button does the same.
 
 <table>
 <tr><td align="center" valign="top" width="33%"><img src="docs/screenshots/02-drawer.jpg" width="240" alt="The drawer: every page, grouped, with search"><br><sub>The drawer: every page, grouped, with search</sub></td><td align="center" valign="top" width="33%"><img src="docs/screenshots/20-home-light.jpg" width="240" alt="Light theme"><br><sub>Light theme</sub></td></tr>
@@ -156,7 +176,10 @@ opens from the drill page.
 <summary><b>More on drills, tallies and the capture check</b></summary>
 
 - **Drills** tab: every drill has a diagram drawn from table coordinates (9-ft, head rail at
-  the top), its Railbird tag with a Copy button, set-up notes and a shot target.
+  the top), its Railbird tag with a Copy button, set-up notes and a shot target. In the
+  diagrams the shot (aim) line is dashed grey and object-ball paths dashed gold; where the cue
+  ball travels is a see-through band one ball wide underneath them: white for the cue ball's
+  path, red for follow, purple for draw. A **Request a drill** card sits at the end of the list.
 - Most drills need no taps. **Transitions** drills take one entry per rack: **Ran out**, or
   the ball the rack ended on plus the reason: **Missed** (shot it and missed) or **Out of
   line** (position lost, abandoned without shooting it). The drill page shows where racks
@@ -206,7 +229,8 @@ games, matches and timed practice sessions.
   **Shot played** when the cue ball is struck.
   - **Rule sets**: Matchroom (World Nineball Tour) by default: 30 s a shot, 60 s for the break
     and the first shot after it, one 30 s extension per player per rack. Also Predator Pro
-    Billiard Series and Custom.
+    Billiard Series, WPBA (40 s a shot, 60 s after the break and after a push out, one 40 s
+    extension per player per game, two each once you tap **Hill-hill**) and Custom.
   - **Push out**: on the first shot after the break. The other player gets 60 s to take it or
     **Pass it back**, which gives the player who pushed 30 s.
   - **Two players**: each has their own extension button (tapping yours also makes you the
@@ -315,10 +339,14 @@ games, matches and timed practice sessions.
 - **Updates** (Android): when the app opens (at most twice a day) it asks GitHub for the latest
   release. If there's a newer one it shows what's new and offers **Download**, **Not now** (asks
   again tomorrow) or **Skip this version**. It never downloads anything without asking.
-- **About**: the version you have, a Check for updates button, feedback (Report a problem and
-  Suggest an idea open a GitHub issue with the version filled in), a privacy summary and the copyright.
+- **About**: the version you have, a Check for updates button, how Railbird fits, a privacy
+  summary and the copyright.
+- **Feedback and drill requests** (top of the drawer; also on Home, the Drills page and About):
+  **Request a drill** takes a link from poolbilliards.co (or any link or description),
+  **Report a problem** and **Suggest an idea**. Each opens a GitHub issue with the app version
+  filled in; you need a free GitHub account, and issues are public.
 
-**Feedback**: [open an issue](https://github.com/lvandrews/Electro-Coach-App/issues) for a problem or an idea, or use About → Report a problem in the app.
+**Feedback**: [open an issue](https://github.com/lvandrews/Electro-Coach-App/issues/new) for a problem, an idea or a drill request (a poolbilliards.co link is perfect), or use **Feedback and drill requests** in the app.
 
 ## How the numbers work
 

@@ -15,7 +15,7 @@ export const FEATURES = [
   'bowling_game_started', 'bowling_game_finished', 'bowling_games_added',
   'straight_pool_started', 'straight_pool_finished', 'scoresheet_pdf',
   'shot_clock_started', 'routine_edited', 'journal_note_added',
-  'fargo_lookup', 'backup_made', 'shots_csv_saved', 'reminders_changed',
+  'fargo_lookup', 'backup_made', 'shots_csv_saved', 'reminders_changed', 'feedback_sent',
 ] as const;
 export type UsageEvent = typeof FEATURES[number];
 export type UsageProps = Record<string, string | number | boolean>;
@@ -23,6 +23,7 @@ export type UsageProps = Record<string, string | number | boolean>;
 /** Property names allowed per event; values are short strings, numbers or true/false. */
 const ALLOWED: Partial<Record<UsageEvent, readonly string[]>> = {
   app_started: ['platform'],
+  feedback_sent: ['kind'],
   first_open: ['platform'],
   screen: ['screen'],
   csv_imported: ['shots'],
