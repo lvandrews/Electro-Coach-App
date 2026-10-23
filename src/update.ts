@@ -32,7 +32,8 @@ export async function launchCheck(): Promise<ReleaseInfo | null> {
   try { return await fetchLatest(); } catch { return m.latest ?? null; }
 }
 
-export const snooze = () => save({ ...load(), snoozedUntil: Date.now() + SNOOZE_MS });
+/** "Later" on one version: quiet for a day, but a newer version is still offered straight away. */
+export const snooze = (version: string) => save({ ...load(), snoozedUntil: Date.now() + SNOOZE_MS, snoozedVersion: version });
 export const skipVersion = (v: string) => save({ ...load(), skipped: v });
 
 // ---------- downloading and installing inside the app (Android; AppUpdatePlugin.java) ----------

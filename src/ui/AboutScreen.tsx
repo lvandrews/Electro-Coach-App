@@ -38,7 +38,8 @@ export function UpdatePrompt() {
   const btn = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     openUpdatePrompt = r => { setRel(r); setStage({ s: 'ask' }); };
-    const demo = import.meta.env.DEV && new URLSearchParams(location.search).get('update-demo');
+    // Development preview only (?update-demo); null in every real build.
+    const demo = import.meta.env.DEV ? new URLSearchParams(location.search).get('update-demo') : null;
     if (demo != null) {
       setRel({ version: '0.1.99', apkUrl: null, pageUrl: '', published: null, notes: 'Shot clock: Reset button.\nDaily FargoRate check.' });
       if (demo === 'downloading') setStage({ s: 'downloading', frac: 0.62, mb: 3.1 });
@@ -61,7 +62,7 @@ export function UpdatePrompt() {
   }, []);
 
   const close = () => { setRel(null); setStage({ s: 'ask' }); };
-  const later = () => { snooze(); close(); };
+  const later = () => { if (rel) snooze(rel.version); close(); };
   const start = async () => {
     if (!rel) return;
     setStage({ s: 'downloading', frac: 0, mb: 0 });

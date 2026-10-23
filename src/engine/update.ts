@@ -53,12 +53,13 @@ export const CHECK_EVERY_MS = 12 * 3600_000;
 /** "Not now" quiets the prompt for a day. */
 export const SNOOZE_MS = 24 * 3600_000;
 
-export interface UpdateMemory { lastCheck?: number; latest?: ReleaseInfo | null; snoozedUntil?: number; skipped?: string }
+export interface UpdateMemory { lastCheck?: number; latest?: ReleaseInfo | null; snoozedUntil?: number; snoozedVersion?: string; skipped?: string }
 
 /** Whether to show the prompt for a release we know about. */
 export function shouldPrompt(rel: ReleaseInfo | null, current: string, mem: UpdateMemory, now: number): boolean {
   if (!rel || !isNewer(rel.version, current)) return false;
   if (mem.skipped === rel.version) return false;
-  if (mem.snoozedUntil && now < mem.snoozedUntil) return false;
+  // "Later" applies only to the version it was tapped on (a snooze saved without a version is ignored).
+  if (mem.snoozedUntil && now < mem.snoozedUntil && mem.snoozedVersion === rel.version) return false;
   return true;
 }

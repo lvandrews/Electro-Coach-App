@@ -35,7 +35,10 @@ describe('update check', () => {
     const r = readRelease(gh('v0.1.21'))!, now = Date.now();
     expect(shouldPrompt(r, '0.1.20', {}, now)).toBe(true);
     expect(shouldPrompt(r, '0.1.21', {}, now)).toBe(false);
-    expect(shouldPrompt(r, '0.1.20', { snoozedUntil: now + 1000 }, now)).toBe(false);
+    expect(shouldPrompt(r, '0.1.20', { snoozedUntil: now + 1000, snoozedVersion: r!.version }, now)).toBe(false);
+    // Later on one version doesn't hide a newer one, and an old snooze without a version is ignored
+    expect(shouldPrompt(r, '0.1.20', { snoozedUntil: now + 1000, snoozedVersion: '0.1.10' }, now)).toBe(true);
+    expect(shouldPrompt(r, '0.1.20', { snoozedUntil: now + 1000 }, now)).toBe(true);
     expect(shouldPrompt(r, '0.1.20', { snoozedUntil: now - 1000 }, now)).toBe(true);
     expect(shouldPrompt(r, '0.1.20', { skipped: '0.1.21' }, now)).toBe(false);
     expect(shouldPrompt(readRelease(gh('v0.1.22'))!, '0.1.20', { skipped: '0.1.21' }, now)).toBe(true);

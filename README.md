@@ -581,7 +581,8 @@ progress, the practice plan), along with drills and tallies, Play, Home, the dra
 journal, the pre-shot routine and timed sessions; then the learning stage, the speed profile,
 your numbers in the routine, straight pool opponents and scoresheets, FargoRate, Resources,
 the iPhone web version, Android share-to-import, practice reminders, anonymous usage counts,
-the update check and the About page.
+the update check and the About page. Since version 0.1.30 the Android app downloads and
+installs its own updates.
 
 Next ideas: a native iPhone build (TestFlight), a Double L variant, an importer for past 10-ball bowling drill scores, Railbird
 sessions matched to timed-session blocks, and optional cloud sync between devices.
