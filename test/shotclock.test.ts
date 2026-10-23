@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   RULE_SETS, callPush, canPassBack, canPush, expire, extend, extensionsLeft, migrateSettings, newRack, passBack, pause,
-  applyRules, remaining, restore, setHillHill, shotPlayed, snapshot, start, turnOver,
+  applyRules, isStale, IDLE_RESET_MS, remaining, restore, setHillHill, shotPlayed, snapshot, start, turnOver,
 } from '../src/engine/shotclock';
 
 const M = RULE_SETS.matchroom.rules;
@@ -93,6 +93,15 @@ describe('WPBA rules', () => {
     expect(s.hillHill).toBe(true); expect(extensionsLeft(s, W, 1)).toBe(2);
     // rules without a hill-hill allowance ignore the switch
     expect(extensionsLeft(setHillHill(newRack(M, 0), true), M, 0)).toBe(1);
+  });
+});
+
+describe('idle reset', () => {
+  it('a clock unused for half an hour is stale, and so is a save from before the rule', () => {
+    const t = 1_000_000_000;
+    expect(isStale(t, t + IDLE_RESET_MS + 1)).toBe(true);
+    expect(isStale(t, t + 10 * 60_000)).toBe(false);
+    expect(isStale(undefined, t)).toBe(true);
   });
 });
 

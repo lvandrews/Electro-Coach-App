@@ -3,7 +3,7 @@ import { trackOnce } from '../usage';
 import { setVolume, sounds, unlockAudio } from './sound';
 import { useWakeLock } from './TallyScreen';
 import {
-  RULE_SETS, applyRules, callPush, extensionsAllowed, setHillHill, canPassBack, canPush, expire, extend, extensionsLeft, migrateSettings, newRack, passBack, pause,
+  RULE_SETS, applyRules, isStale, callPush, extensionsAllowed, setHillHill, canPassBack, canPush, expire, extend, extensionsLeft, migrateSettings, newRack, passBack, pause,
   remaining, restore, rulesFor, shotPlayed, snapshot, stageLabel, start, turnOver,
   type ClockRules, type ClockSettings, type ClockState, type Player, type RuleSetId, type Snapshot,
 } from '../engine/shotclock';
@@ -17,11 +17,15 @@ const KEY = 'ec-shotclock';
 const STATE_KEY = 'ec-shotclock-state';
 function loadSettings(): ClockSettings { try { return migrateSettings(JSON.parse(localStorage.getItem(KEY) ?? 'null')); } catch { return migrateSettings(null); } }
 /** The clock survives leaving the page: it comes back paused with the time it had. */
+type Saved = { state: ClockState; leftMs: number; at?: number };   // at: wall-clock time of the last action
+const readSaved = (): Saved | null => { try { return JSON.parse(localStorage.getItem(STATE_KEY) ?? 'null') as Saved | null; } catch { return null; } };
+/** The clock survives leaving the page: it comes back paused with the time it had, or fresh if it sat unused for half an hour. */
 function loadState(rules: ClockRules): ClockState {
-  try {
-    const raw = JSON.parse(localStorage.getItem(STATE_KEY) ?? 'null') as { state: ClockState; leftMs: number } | null;
-    if (raw?.state) { const s = raw.state; return s.phase === 'running' ? { ...s, phase: 'paused', remainingMs: raw.leftMs, endAt: 0 } : s; }
-  } catch { /* start fresh */ }
+  const raw = readSaved();
+  if (raw?.state && !isStale(raw.at, Date.now())) {
+    const s = raw.state;
+    return s.phase === 'running' ? { ...s, phase: 'paused', remainingMs: raw.leftMs, endAt: 0 } : s;
+  }
   return newRack(rules, 0);
 }
 const vibrate = (ms: number | number[]) => { try { navigator.vibrate?.(ms); } catch { /* not supported */ } };
@@ -30,6 +34,7 @@ export function ShotClock() {
   useWakeLock();
   const [cfg, setCfg] = useState<ClockSettings>(loadSettings);
   const rules = rulesFor(cfg);
+  const rulesRef = useRef(rules); rulesRef.current = rules;
   const [s, setS] = useState<ClockState>(() => loadState(rulesFor(loadSettings())));
   const [, setTick] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
@@ -43,7 +48,20 @@ export function ShotClock() {
   const rulesKey = JSON.stringify(rules);
   const lastRules = useRef(rulesKey);
   useEffect(() => { if (lastRules.current === rulesKey) return; lastRules.current = rulesKey; setS(cur => applyRules(cur, rules)); }, [rulesKey]);
-  useEffect(() => { try { localStorage.setItem(STATE_KEY, JSON.stringify(snapshot(s, now()))); } catch { /* ignore */ } }, [s]);
+  useEffect(() => { try { localStorage.setItem(STATE_KEY, JSON.stringify({ ...snapshot(s, now()), at: Date.now() })); } catch { /* ignore */ } }, [s]);
+  // Back on this page after the phone slept or the app sat in the background: a clock unused
+  // for half an hour starts fresh. A running clock is never reset this way.
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState !== 'visible') return;
+      const raw = readSaved();
+      if (!raw || !isStale(raw.at, Date.now())) return;   // no saved state (storage blocked): leave the clock alone
+      setS(cur => (cur.phase === 'running' ? cur : newRack(rulesRef.current, 0)));
+      undo.current = []; setPickBreaker(false);
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
 
   /** Apply an action, keeping the previous state for Undo. */
   function act(next: ClockState, feedback: 'tap' | 'none' = 'tap') {
@@ -91,6 +109,7 @@ export function ShotClock() {
   const doPush = () => { unlockAudio(); act(callPush(s)); };
   const doPassBack = () => { unlockAudio(); act(passBack(s, rules, now()), 'none'); sounds.start(); };
   const doUndo = () => { unlockAudio(); const snap = undo.current.pop(); if (!snap) return; const back = restore(snap, now()); lastSec.current = Math.ceil(remaining(back, now()) / 1000); setS(back); sounds.tap(); };
+  const doReset = () => { unlockAudio(); setPickBreaker(false); act(newRack(rules, 0)); };
   const doHillHill = () => { unlockAudio(); act(setHillHill(s, !s.hillHill)); };
   const doNewRack = (p: Player) => { unlockAudio(); act(newRack(rules, p, s)); setPickBreaker(false); };
 
@@ -126,7 +145,10 @@ export function ShotClock() {
     <div class="clock">
       <div class="clock-top">
         <span class="small muted">{setName} rules · rack {s.rack}</span>
-        <button class="btn btn-s clock-pause" onClick={doPause} disabled={!running}>{s.phase === 'paused' ? '▶ Resume' : '❚❚ Pause'}</button>
+        <span class="row" style={{ gap: '6px', flexWrap: 'nowrap' }}>
+          <button class="btn btn-s clock-reset" onClick={doReset} aria-label="Reset the shot clock to a fresh start">↺ Reset</button>
+          <button class="btn btn-s clock-pause" onClick={doPause} disabled={!running}>{s.phase === 'paused' ? '▶ Resume' : '❚❚ Pause'}</button>
+        </span>
       </div>
 
       <button class={`clock-face p${s.shooter} ${state} ${s.phase === 'running' ? 'running' : ''}`} onClick={face}
@@ -253,6 +275,7 @@ function Usage({ rules: r, ruleSet }: { rules: ClockRules; ruleSet: RuleSetId })
         <li><b>Push out</b> appears on the first shot after the break: tap it before you push. The other player then gets {r.pushIncoming} seconds to take it or <b>Pass it back</b>, which gives the player who pushed {r.pushBack} seconds.</li>
         <li><b>Undo</b> reverses the last tap. <b>Pause</b> (top right) is for interruptions such as cleaning the cue ball or waiting for a referee.</li>
         <li><b>New rack</b> asks who breaks and resets the extensions. The clock keeps its place if you leave this page; it comes back paused.</li>
+        <li><b>Reset</b> (top) starts fresh: rack 1, Player A to break, no extensions used. Undo brings back where you were. A clock left unused for half an hour also opens fresh.</li>
         <li class="kbd-hint">On a laptop: Space start / shot played, P pause, E extension, T turn over, U undo, R new rack.</li>
       </ul>
       <h4 style={{ margin: '10px 0 4px' }}>{ruleSet === 'custom' ? 'Your custom rules' : RULE_SETS[ruleSet].label}</h4>

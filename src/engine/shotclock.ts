@@ -178,6 +178,16 @@ export function stageLabel(s: ClockState): string {
   }
 }
 
+/**
+ * A clock left alone this long comes back as a fresh screen (rack 1, nothing used) instead of
+ * where it stopped, e.g. still showing a time foul an hour later. Long enough for a break
+ * between games or a referee call.
+ */
+export const IDLE_RESET_MS = 30 * 60_000;
+/** A save with no time (from before this rule) counts as stale. */
+export const isStale = (lastActionAt: number | undefined, now: number, idleMs = IDLE_RESET_MS) =>
+  lastActionAt == null || !Number.isFinite(lastActionAt) || now - lastActionAt > idleMs;
+
 /** Snapshot for Undo: a running clock is saved with the time it had left, and restored running from there. */
 export interface Snapshot { state: ClockState; leftMs: number }
 export const snapshot = (s: ClockState, now: number): Snapshot => ({ state: s, leftMs: remaining(s, now) });
