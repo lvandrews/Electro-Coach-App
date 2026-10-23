@@ -2,7 +2,12 @@ import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { AppData, Tab } from '../app';
 import type { DrillDef } from '../engine/drills';
 import { fitBaseline, latestStart, suggestedPins, type Baseline } from '../engine/progress';
-import { buildPlan, PLAN_PERIODS, sessionBlocks, type PlanItem, type PlanPeriod, type PlanSettings } from '../engine/plan';
+import { buildPlan, PLAN_PERIODS, type PlanItem, type PlanPeriod, type PlanSettings } from '../engine/plan';
+import type { Game } from '../engine/games';
+import type { TallySession } from '../engine/tally';
+import { estLabel } from '../engine/workout';
+import { MODE_LABEL } from '../engine/session';
+import { ADAPT_NOTE, composeFor, filmingStatus } from './sessionPlan';
 import type { Tier } from '../engine/ledger';
 import { rowsFor } from './ProgressScreen';
 import { Empty } from './SessionsScreen';
@@ -14,7 +19,7 @@ const TIER_CLASS: Record<Tier, string> = {
 const pts = (x: number) => `${x >= 0 ? '+' : '−'}${Math.abs(100 * x).toFixed(1)}`;
 
 type Props = {
-  data: AppData; drills: DrillDef[]; baseline: Baseline | null; pins: string[] | null; plan: PlanSettings;
+  data: AppData; drills: DrillDef[]; tallies: TallySession[]; games: Game[]; baseline: Baseline | null; pins: string[] | null; plan: PlanSettings;
   onBaseline: (b: Baseline) => Promise<void>; onPlan: (p: PlanSettings) => Promise<void>; onPins: (p: string[]) => Promise<void>;
   onOpenDrill: (id: string) => void; onGo: (t: Tab) => void;
 };
@@ -28,11 +33,18 @@ export function PlanScreen(p: Props) {
   const plan = useMemo(() => (rows && baseline ? buildPlan(baseline, rows, settings.period) : null), [rows, baseline, settings.period]);
   const pinList = useMemo(() => (rows && baseline ? p.pins ?? suggestedPins(baseline, rows) : []), [rows, baseline, p.pins]);
 
-  if (!data.shots.size) return <Empty onGo={p.onGo} />;
+  const set = (patch: Partial<PlanSettings>) => p.onPlan({ ...settings, ...patch });
+  if (!data.shots.size) return (
+    <section>
+      <h2>Practice plan</h2>
+      <p class="lede">Stroke drills and tap drills work without any shot data. Import Railbird exports and the plan adds your weakest shots as targets.</p>
+      <SessionSettings p={p} set={set} />
+      <NextSession p={p} />
+      <Empty onGo={p.onGo} />
+    </section>
+  );
   if (!plan) return <section><h2>Practice plan</h2><p class="muted">Ranking targets…</p></section>;
 
-  const set = (patch: Partial<PlanSettings>) => p.onPlan({ ...settings, ...patch });
-  const blocks = sessionBlocks(plan, settings.hidden, settings.minutes);
   const drillName = (id: string) => p.drills.find(d => d.id === id)?.name ?? id;
   const togglePin = (label: string) => p.onPins(pinList.includes(label) ? pinList.filter(x => x !== label) : [...pinList, label]);
   const toggleHidden = (label: string) => set({ hidden: settings.hidden.includes(label) ? settings.hidden.filter(x => x !== label) : [...settings.hidden, label] });
@@ -45,38 +57,13 @@ export function PlanScreen(p: Props) {
       <div class="controls">
         <label>Based on<select value={settings.period} onChange={e => set({ period: (e.target as HTMLSelectElement).value as PlanPeriod })}>
           {PLAN_PERIODS.map(x => <option key={x.id} value={x.id}>{x.label}</option>)}</select></label>
-        <label>Session length<select value={String(settings.minutes)} onChange={e => set({ minutes: Number((e.target as HTMLSelectElement).value) })}>
-          {[30, 45, 60, 90, 120].map(m => <option key={m} value={m}>{m} minutes</option>)}</select></label>
       </div>
       <p class="small muted" style={{ marginTop: '-4px' }}>
         {int(plan.shots)} kept shots from {plan.sessions} sessions{plan.from ? `, ${fmtDate(plan.from, { month: 'short', year: 'numeric' })} to ${fmtDate(plan.to)}` : ''}.
       </p>
 
-      <div class="card">
-        <h3 style={{ marginTop: 0 }}>Next session · {settings.minutes} minutes</h3>
-        <ol class="blocks">
-          {blocks.map((b, i) => (
-            <li key={i}>
-              <span class="block-min num">{b.minutes}′</span>
-              <div class="grow">
-                <div class="block-title">{b.title}</div>
-                <div class="small muted">{b.why}</div>
-                {b.label && settings.text[b.label]?.trim() && <div class="small cue">“{settings.text[b.label].trim()}”</div>}
-                {b.drills.length > 0 && <div class="row" style={{ gap: '6px', marginTop: '6px' }}>
-                  {b.drills.map(id => <button key={id} class="btn btn-s" onClick={() => p.onOpenDrill(id)}>{drillName(id)}</button>)}
-                </div>}
-              </div>
-            </li>
-          ))}
-        </ol>
-        <div class="row" style={{ gap: '8px', marginTop: '12px' }}>
-          <button class="btn primary" onClick={() => p.onGo('session')}>Start this session</button>
-          <span class="small muted">Runs block by block with a timer; you review the blocks first.</span>
-        </div>
-        <p class="small muted" style={{ margin: '8px 0 0' }}>
-          The top targets share the time by makes lost (10 minutes at least). A target that is mostly the same shots as one already chosen is skipped; so is one you leave out below.
-        </p>
-      </div>
+      <SessionSettings p={p} set={set} />
+      <NextSession p={p} />
 
       <div class="card">
         <h3 style={{ marginTop: 0 }}>Your plan notes</h3>
@@ -153,5 +140,63 @@ function TextBox({ value, placeholder, onSave, rows }: { value: string; placehol
       onInput={e => setV((e.target as HTMLTextAreaElement).value)}
       onBlur={() => { if (v !== value) onSave(v); }}
       onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) onSave(v); }} />
+  );
+}
+
+/** How sessions are built: finishing drills vs keeping to time, and how often to film. */
+function SessionSettings({ p, set }: { p: Props; set: (patch: Partial<PlanSettings>) => void }) {
+  const s = p.plan;
+  const f = filmingStatus(p);
+  return (
+    <div class="card">
+      <h3 style={{ marginTop: 0 }}>How sessions run</h3>
+      <div class="notice learn-note small" style={{ marginTop: 0 }}>{ADAPT_NOTE}</div>
+      <div class="controls">
+        <label>Tapped drills<select value={s.timing ?? 'finish'} onChange={e => set({ timing: (e.target as HTMLSelectElement).value as 'finish' | 'time' })}>
+          <option value="finish">Finish each drill (time is a pace target)</option><option value="time">Keep to the time</option></select></label>
+        <label>Film with Railbird<select value={String(s.filmPerWeek ?? 2)} onChange={e => set({ filmPerWeek: Number((e.target as HTMLSelectElement).value) })}>
+          {[0, 1, 2, 3].map(n => <option key={n} value={n}>{n === 0 ? 'Never (tap only)' : `${n} session${n === 1 ? '' : 's'} a week`}</option>)}</select></label>
+        <label>Filmed minutes<select value={String(s.filmMinutes ?? 30)} disabled={(s.filmPerWeek ?? 2) === 0} onChange={e => set({ filmMinutes: Number((e.target as HTMLSelectElement).value) })}>
+          {[20, 30, 45].map(n => <option key={n} value={n}>{n} minutes</option>)}</select></label>
+        <label>Session length<select value={String(s.minutes)} onChange={e => set({ minutes: Number((e.target as HTMLSelectElement).value) })}>
+          {[30, 45, 60, 90, 120].map(m => <option key={m} value={m}>{m} minutes</option>)}</select></label>
+      </div>
+      <p class="small muted" style={{ margin: 0 }}>
+        {(s.filmPerWeek ?? 2) === 0 ? 'All practice is tapped on the phone.' : `Filmed this week: ${f.done} of ${f.perWeek}. ${f.due ? `The next session films up to ${f.minutes} minutes with one Railbird recording and one tag; the rest is tapped.` : 'Done for the week: sessions are tap-only until Monday.'}`}
+        {' '}With "Finish each drill", a soft chime marks the planned time and the block ends when the drill is done.
+      </p>
+    </div>
+  );
+}
+
+function NextSession({ p }: { p: Props }) {
+  const c = composeFor(p, 'planned');
+  const drillName = (id: string) => p.drills.find(d => d.id === id)?.name ?? id;
+  return (
+    <div class="card">
+      <h3 style={{ marginTop: 0 }}>Next session · {p.plan.minutes} minutes</h3>
+      <ol class="blocks">
+        {c.run.map((b, i) => (
+          <li key={i}>
+            <span class="block-min num">{b.minutes}′</span>
+            <div class="grow">
+              <div class="block-title">{b.title}</div>
+              <div class="small muted">{b.why} · {MODE_LABEL[b.mode].toLowerCase()}{b.mode === 'tap' && b.end === 'count' && b.count ? `, until ${b.count} ${b.unit}` : ''}{estLabel(b) ? ` · minutes ${estLabel(b)}` : ''}</div>
+              {b.label && p.plan.text[b.label]?.trim() && <div class="small cue">“{p.plan.text[b.label].trim()}”</div>}
+              {b.drills.length > 0 && <div class="row" style={{ gap: '6px', marginTop: '6px' }}>
+                {b.drills.map(id => <button key={id} class={`btn btn-s ${id === b.drillId ? 'primary' : ''}`} onClick={() => p.onOpenDrill(id)}>{drillName(id)}</button>)}
+              </div>}
+            </div>
+          </li>
+        ))}
+      </ol>
+      <div class="row" style={{ gap: '8px', marginTop: '12px' }}>
+        <button class="btn primary" onClick={() => p.onGo('session')}>Start this session</button>
+        <span class="small muted">You review the blocks first; Tournament warm-up and Stroke workout are there too.</span>
+      </div>
+      <p class="small muted" style={{ margin: '8px 0 0' }}>
+        It opens with stroke drills chosen by your player stage and drill levels, then the top targets share the time by makes lost, and it closes with a run-out.
+      </p>
+    </div>
   );
 }

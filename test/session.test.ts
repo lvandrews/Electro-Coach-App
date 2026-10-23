@@ -16,7 +16,8 @@ describe('practice session runs', () => {
   it('picks modes from the drills', () => {
     expect(defaultsFor(byId('transitions-1'))).toMatchObject({ mode: 'tap', end: 'either', unit: 'racks' });
     expect(defaultsFor(byId('mirror'))).toMatchObject({ mode: 'tap', unit: 'shots' });
-    expect(defaultsFor(byId('spot'))).toMatchObject({ mode: 'record', end: 'time' });
+    expect(defaultsFor(byId('spot'))).toMatchObject({ mode: 'tap', unit: 'makes', count: 10 });
+    expect(defaultsFor(byId('side-ladder'))).toMatchObject({ mode: 'record', end: 'time' });
     expect(defaultsFor(byId('bowling-10'))).toMatchObject({ unit: 'games', count: 1 });
   });
   it('fits blocks plus changeovers into the session length, filmed blocks together', () => {

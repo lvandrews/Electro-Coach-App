@@ -25,6 +25,11 @@ export interface RunBlock {
   end: EndRule;
   count?: number;
   unit?: CountUnit;
+  level?: number;                 // progressive drills: the level to play (else the player's current level)
+  variant?: string;               // e.g. the speed for basic stop shots
+  target?: number;                // chosen set size
+  est?: number;                   // how many of your own past runs the minutes come from (0 = an estimate)
+  stroke?: boolean;               // part of the stroke warm-up
   // filled in while running
   setupAt?: string;               // set-up card shown
   startedAt?: string;             // timer started

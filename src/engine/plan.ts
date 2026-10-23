@@ -19,8 +19,11 @@ export interface PlanSettings {
   general: string;                    // free text for the whole plan
   text: Record<string, string>;       // coaching text per segment label
   hidden: string[];                   // targets left out of the session
+  timing?: 'finish' | 'time';         // tap blocks: finish each drill (default) or keep to time
+  filmPerWeek?: number;               // filmed (Railbird) sessions a week: 0–3, default 2
+  filmMinutes?: number;               // filmed minutes in a filmed session: 20, 30 or 45
 }
-export const DEFAULT_PLAN: PlanSettings = { period: '365', minutes: 60, general: '', text: {}, hidden: [] };
+export const DEFAULT_PLAN: PlanSettings = { period: '365', minutes: 60, general: '', text: {}, hidden: [], timing: 'finish', filmPerWeek: 2, filmMinutes: 30 };
 
 export interface PlanItem {
   label: string;
@@ -51,7 +54,7 @@ export function drillsFor(label: string): string[] {
   if (l.startsWith('draw')) return ['xdrill'];
   if (l.includes('near-straight')) return ['mirror', 'xdrill'];
   if (l.includes('moderate 20–45')) return ['d0-tangent', 'd2-stun', 'spot'];
-  if (l.includes('steep')) return ['d1-roll'];
+  if (l.includes('steep')) return ['thin-cuts-1', 'thin-cuts-2', 'd1-roll'];
   if (l.startsWith('side pocket')) return ['side-ladder'];
   if (l.startsWith('corner pocket')) return ['spot', 'double-box'];
   if (l.startsWith('backcuts')) return ['mirror'];

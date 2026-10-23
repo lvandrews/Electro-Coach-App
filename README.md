@@ -83,6 +83,19 @@ Plan, Session, Drills and History. With large system text the bottom bar scrolls
 <tr><td align="center" valign="top" width="33%"><img src="docs/screenshots/03-plan.jpg" width="240" alt="Practice plan: targets ranked by makes lost"><br><sub>Practice plan: targets ranked by makes lost</sub></td><td align="center" valign="top" width="33%"><img src="docs/screenshots/04-session-setup.jpg" width="240" alt="Session: each block opens on a set-up card"><br><sub>Session: each block opens on a set-up card</sub></td><td align="center" valign="top" width="33%"><img src="docs/screenshots/05-session-timer.jpg" width="240" alt="Session: the block timer"><br><sub>Session: the block timer</sub></td></tr>
 </table>
 
+**How sessions are built.** Every session opens with stroke drills chosen by your player stage
+and drill levels (the X-drill at minimum; Basic stop shots for new players), then the plan's
+targets, then a run-out. Block times adapt: they start as estimates and then come from how long
+each drill actually took you (the median of your last four), labeled either way and editable.
+By default tapped drills **finish each drill**: the planned time is a pace target with a soft
+chime, and the block ends when the drill is done (or choose **keep to the time**). Filming is
+limited to the sessions a week you choose (2 by default, 20–45 minutes each), in one Railbird
+recording with one tag (`ec-filmed`); otherwise practice is tap-only, and drills that need
+Railbird swap to a tapped drill or free practice. The session review also offers a
+**Tournament warm-up** (five medium-speed basic stop shots) and a **Stroke workout** (all
+three levels of each stroke drill). Without any Railbird data the plan still builds sessions
+from stroke drills and a run-out.
+
 **Practice plan.** Targets are the kinds of shot where you fall short of your own yardstick,
 ranked by how many makes they cost you in every 100 shots (how far below expectation × how often
 you face them). Strengths are listed too. Each target links to its drills, can be tracked on

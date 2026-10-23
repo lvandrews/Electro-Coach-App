@@ -4,7 +4,8 @@ import type { DrillDef } from '../engine/drills';
 import type { TallySession } from '../engine/tally';
 import type { ImportReport } from '../engine/merge';
 import { bowlingStats, bowlingTotal, bpi, spState, type BowlingGame, type Game, type StraightPoolMatch } from '../engine/games';
-import { buildPlan, sessionBlocks, type PlanSettings } from '../engine/plan';
+import { buildPlan, type PlanSettings } from '../engine/plan';
+import { composeFor } from './sessionPlan';
 import { periodSummary, progressNow, sessionPoints, type Baseline, type Note } from '../engine/progress';
 import type { PracticeSession } from '../engine/session';
 import { activities, ActivityRow, type Activity } from './HistoryScreen';
@@ -38,7 +39,7 @@ export function HomeScreen(p: Props) {
   const now = useNow(1000);
   const rows = useMemo(() => (p.data.shots.size ? rowsFor(p.data) : []), [p.data.exclusions]);
   const plan = useMemo(() => (p.baseline && rows.length ? buildPlan(p.baseline, rows, p.plan.period) : null), [p.baseline, rows, p.plan.period]);
-  const blocks = plan ? sessionBlocks(plan, p.plan.hidden, p.plan.minutes) : [];
+  const blocks = useMemo(() => composeFor({ data: p.data, baseline: p.baseline, plan: p.plan, drills: p.drills, tallies: p.tallies, games: p.games }, 'planned').run, [p.baseline, p.data.exclusions, p.plan, p.drills, p.tallies.length, p.games.length]);
   const recent = useMemo(() => activities(p.data, p.tallies, p.games, p.drills).filter(a => !a.live).slice(0, 4), [p.data.exclusions, p.tallies, p.games, p.drills]);
   const summary = useMemo(() => { if (!p.baseline || !rows.length) return null; const pts0 = sessionPoints(p.baseline, rows); return periodSummary(pts0, p.baseline, progressNow(pts0)); }, [p.baseline, rows]);
   const bowl = p.games.filter((g): g is BowlingGame => g.kind === 'bowling' && bowlingTotal(g) != null).sort((a, b) => (a.date < b.date ? -1 : 1));
@@ -90,7 +91,8 @@ export function HomeScreen(p: Props) {
         {blocks.length ? <>
           <ol class="home-blocks">{blocks.map((b, i) => <li key={i}><span class="num">{b.minutes}′</span> {b.title}</li>)}</ol>
           <button class="btn primary" disabled={!!p.session} onClick={() => p.onGo('session')}>{p.session ? 'A session is running' : 'Start this session'}</button>
-        </> : <p class="small muted" style={{ margin: '6px 0 0' }}>{p.data.shots.size ? 'Building your plan…' : 'Import your Railbird data and the plan builds itself from it.'}</p>}
+        </> : <p class="small muted" style={{ margin: '6px 0 0' }}>Building your plan…</p>}
+        {!p.data.shots.size && <p class="small muted" style={{ margin: '6px 0 0' }}>Import Railbird data and the plan adds targets from your weakest shots.</p>}
       </div>
 
       {(summary || plan?.targets.length || bowl5 || spBpi.length > 0 || med || fargoNow || best) && (

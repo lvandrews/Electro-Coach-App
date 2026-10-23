@@ -47,6 +47,7 @@ export interface DrillDef {
   scorer?: 'bowling';              // scored with its own scorer instead of tapped
   learning?: string;               // how to start out on a hard drill (shown above the set-up)
   prog?: ProgSpec;                 // progressive tap drills: levels, phases and outcomes
+  minutes?: number;                // first estimate of one set, before your own times take over
 }
 
 const LEARNING = 'This drill is hard. Start by taking ball in hand on every shot, placing the cue ball where your position should have left it, until the patterns feel familiar. Start logging racks once you can regularly get through several balls.';
@@ -368,7 +369,7 @@ const thinProg = (diagram: DiagramSpec, sides: [string, string]): ProgSpec => ({
 
 export const THIN_CUT_DRILLS: DrillDef[] = [
   {
-    id: 'thin-cuts-1', name: 'Thin cuts 1', category: 'reps', tags: [{ value: 'ec-thin-cuts-1' }], aliases: ['thin cut'],
+    id: 'thin-cuts-1', minutes: 12, name: 'Thin cuts 1', category: 'reps', tags: [{ value: 'ec-thin-cuts-1' }], aliases: ['thin cut'],
     diagram: thinCuts1, counters: 'progressive', prog: thinProg(thinCuts1, ['Head-side corner', 'Foot-side corner']),
     setup: [
       'Cue ball on the center spot. Object ball about an inch off the long rail, at the diamond next to the side pocket.',
@@ -378,7 +379,7 @@ export const THIN_CUT_DRILLS: DrillDef[] = [
     target: { text: '5 makes in each direction (10 makes).', unit: 'makes' },
   },
   {
-    id: 'thin-cuts-2', name: 'Thin cuts 2', category: 'reps', tags: [{ value: 'ec-thin-cuts-2' }], aliases: [],
+    id: 'thin-cuts-2', minutes: 12, name: 'Thin cuts 2', category: 'reps', tags: [{ value: 'ec-thin-cuts-2' }], aliases: [],
     diagram: thinCuts2, counters: 'progressive', prog: thinProg(thinCuts2, ['Left corner', 'Right corner']),
     setup: [
       'Cue ball on the center spot. Object ball one diamond from a corner pocket along the short rail, about an inch off the rail.',
@@ -391,7 +392,7 @@ export const THIN_CUT_DRILLS: DrillDef[] = [
 
 const STROKE_DRILLS: DrillDef[] = [
   {
-    id: 'basic-stops', name: 'Basic stop shots', category: 'stroke', tags: [{ value: 'ec-basic-stops' }], aliases: ['basic stop'],
+    id: 'basic-stops', minutes: 3, name: 'Basic stop shots', category: 'stroke', tags: [{ value: 'ec-basic-stops' }], aliases: ['basic stop'],
     diagram: basicStop, counters: 'progressive', prog: BASIC_STOP_PROG,
     setup: [
       'Cue ball on the center spot; object ball right in front of a side pocket, about an inch off the lip. Play stop shots.',
@@ -402,7 +403,7 @@ const STROKE_DRILLS: DrillDef[] = [
     target: { text: 'Sets of 5 (or 7+) at each speed.', unit: 'makes' },
   },
   {
-    id: 'basic-draws', name: 'Basic draw shots', category: 'stroke', tags: [{ value: 'ec-basic-draws' }], aliases: ['basic draw'],
+    id: 'basic-draws', minutes: 4, name: 'Basic draw shots', category: 'stroke', tags: [{ value: 'ec-basic-draws' }], aliases: ['basic draw'],
     diagram: basicDraw, counters: 'progressive', prog: BASIC_DRAW_PROG,
     setup: [
       'The same set-up as Basic stop shots: cue ball on the center spot, object ball an inch off the side pocket’s lip.',
@@ -411,7 +412,7 @@ const STROKE_DRILLS: DrillDef[] = [
     target: { text: 'Sets of 7.', unit: 'makes' },
   },
   {
-    id: 'midtable-stops', name: 'Mid-table stop shots', category: 'stroke', tags: [{ value: 'ec-midtable-stops' }], aliases: ['centerline drill', 'mid-table stop'],
+    id: 'midtable-stops', minutes: 8, name: 'Mid-table stop shots', category: 'stroke', tags: [{ value: 'ec-midtable-stops' }], aliases: ['centerline drill', 'mid-table stop'],
     diagram: midLevel(0), counters: 'progressive', prog: MID_PROG,
     setup: [
       'All 15 balls on the line between the side pockets: one on the center spot, then seven spread evenly toward each side pocket. The outermost ball sits about half a ball off the long rail, not frozen to it.',
@@ -422,7 +423,7 @@ const STROKE_DRILLS: DrillDef[] = [
     target: { text: '15 makes per set, one per ball.', unit: 'makes' },
   },
   {
-    id: 'xdrill', name: 'X-drill', category: 'stroke', tags: [], railbirdBuiltIn: 'drillx-shot', aliases: ['drillx-shot', 'drill x-shot', 'x-drill', 'mighty x'],
+    id: 'xdrill', minutes: 12, name: 'X-drill', category: 'stroke', tags: [], railbirdBuiltIn: 'drillx-shot', aliases: ['drillx-shot', 'drill x-shot', 'x-drill', 'mighty x'],
     diagram: xLevel(0), counters: 'progressive', prog: X_PROG,
     setup: [
       'Object ball one diamond off the long rail and two diamonds from the short rail; straight into that corner along the diagonal.',
@@ -434,7 +435,7 @@ const STROKE_DRILLS: DrillDef[] = [
     target: { text: '30 makes per set: 10 follow, 10 stop, 10 draw.', unit: 'makes' },
   },
   {
-    id: 'center-follow', name: 'Center table follow', category: 'stroke', tags: [{ value: 'ec-center-follow' }], aliases: ['center table follow'],
+    id: 'center-follow', minutes: 6, name: 'Center table follow', category: 'stroke', tags: [{ value: 'ec-center-follow' }], aliases: ['center table follow'],
     diagram: ctLevel(0, 'follow'), counters: 'progressive', prog: ctProg('follow'),
     setup: [
       'One ball on the center spot. Shoot it straight along the diagonal into a corner of your choice and follow the cue ball into the same pocket.',
@@ -444,7 +445,7 @@ const STROKE_DRILLS: DrillDef[] = [
     target: { text: 'Sets of 10 makes.', unit: 'makes' },
   },
   {
-    id: 'center-draw', name: 'Center table draw', category: 'stroke', tags: [{ value: 'ec-center-draw' }], aliases: ['center table draw', 'longest shot'],
+    id: 'center-draw', minutes: 6, name: 'Center table draw', category: 'stroke', tags: [{ value: 'ec-center-draw' }], aliases: ['center table draw', 'longest shot'],
     diagram: ctLevel(0, 'draw'), counters: 'progressive', prog: ctProg('draw'),
     setup: [
       'One ball on the center spot. Shoot it straight along the diagonal into a corner of your choice and draw the cue ball straight back to the opposite corner.',
@@ -484,16 +485,19 @@ const DRILL_DEFS: DrillDef[] = [
     target: { text: 'Score each game with the scorer (Open the scorer below). Watch the average of your last five.', unit: 'racks' },
   },
   {
-    id: 'spot', name: 'Spot shot', category: 'reps', tags: [], railbirdBuiltIn: 'drillspot-shot', aliases: ['drillspot-shot', 'drill spot-shot', 'spot shot'],
-    diagram: spot, counters: 'none',
+    id: 'spot', minutes: 8, name: 'Spot shot', category: 'reps', tags: [], railbirdBuiltIn: 'drillspot-shot', aliases: ['drillspot-shot', 'drill spot-shot', 'spot shot'],
+    diagram: spot, counters: 'progressive',
+    prog: { progressive: false, missKind: 'thickthin', noQuality: true, alternate: ['Left side', 'Right side'],
+      levels: [{ label: 'Spot shot', cue: 'Object ball on the foot spot; cue ball behind the head string, 2–3 ball widths off a side rail.', diagram: spot }],
+      phases: [{ id: 'spot', name: 'Spot shot', makes: 10, outcomes: [{ id: 'sp-made', label: 'Made' }] }] },
     setup: [
       'Object ball on the foot spot. Cue ball just behind the head string, 2–3 ball widths off a side rail.',
       'Cut it into the far bottom corner, close to a half-ball hit.',
       'After a make, switch to the other side of the table (the mirror shot into the other bottom corner). After a miss, repeat the same position until you make it.',
       'Tests committing to a longer shot and a smooth delivery: full routine, fundamentals, stay still through the shot.',
-      "Use Railbird's built-in spot-shot drill mode.",
+      "Tap each shot, or on a filming day use Railbird's built-in spot-shot drill mode.",
     ],
-    target: { text: '20 recorded shots minimum per session.', minimum: 20, unit: 'shots' },
+    target: { text: '10 makes, alternating sides (about 20 shots).', minimum: 20, unit: 'shots' },
   },
   {
     id: 'mirror', name: 'Mirror set', category: 'reps', tags: [{ value: 'ec-mirror' }], aliases: ['mirror set'],

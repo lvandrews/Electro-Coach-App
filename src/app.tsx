@@ -177,13 +177,14 @@ export function App() {
   async function updateRules(r: RuleConfig) { setRules(r); await store.saveRules(r); }
 
   // ----- tallies -----
-  async function startTally(d: DrillDef): Promise<string> {
+  async function startTally(d: DrillDef, opts: { level?: number; variant?: string; target?: number } = {}): Promise<string> {
     // Only one tally runs at a time: an empty one left open is dropped, a used one is saved.
     const open = tallies.find(x => x.id === activeTallyId && !x.ended);
     if (open) { if (open.events.length) await finishTally({ ...open, ended: new Date().toISOString(), updated: new Date().toISOString() }); else await discardTally(open.id); }
     const now = new Date().toISOString();
     const t: TallySession = { id: newTallyId(), drillId: d.id, drillName: d.name, device, started: now, updated: now, events: [],
-      ...(d.prog?.progressive ? { level: drillLevel(d, tallies).level } : {}) };
+      ...(d.prog?.progressive ? { level: opts.level ?? drillLevel(d, tallies).level } : {}),
+      ...(opts.variant ? { variant: opts.variant } : {}), ...(opts.target ? { target: opts.target } : {}) };
     await store.saveTally(t);
     setTallies(ts => [t, ...ts]); setActiveTallyId(t.id); setDrillOpen(d.id); setTallyOpen(true); setTab('drills');
     track('tally_started', { drill: drillLabel(d.id, BUILTIN_IDS) });
@@ -372,7 +373,7 @@ export function App() {
               <BowlingScreen games={games} device={device} onSave={saveGame} onDelete={deleteGame} />
             </section>
           : tab === 'play' ? <PlayScreen mode={playMode} onMode={pickPlay} games={games} device={device} onSaveGame={saveGame} onDeleteGame={deleteGame} />
-          : tab === 'plan' ? <PlanScreen data={data} drills={drills} baseline={baseline} pins={pins} plan={plan}
+          : tab === 'plan' ? <PlanScreen data={data} drills={drills} tallies={tallies} games={games} baseline={baseline} pins={pins} plan={plan}
               onBaseline={updateBaseline} onPlan={updatePlan} onPins={updatePins} onOpenDrill={openDrill} onGo={go} />
           : tab === 'settings' ? <SettingsScreen data={data} drills={drills} tallies={tallies} device={device} onDevice={renameDevice} onRules={updateRules} onRestored={reload} onBackedUp={setLastBackup} onGo={go} />
           : tab === 'about' ? <AboutScreen onGo={go} />

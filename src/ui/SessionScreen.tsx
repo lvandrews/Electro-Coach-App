@@ -3,10 +3,12 @@ import type { AppData } from '../app';
 import type { DrillDef } from '../engine/drills';
 import type { TallySession } from '../engine/tally';
 import { newGameId, type Game } from '../engine/games';
-import { buildPlan, sessionBlocks, type PlanSettings } from '../engine/plan';
+import type { PlanSettings } from '../engine/plan';
+import { estLabel, type Kind } from '../engine/workout';
+import { ADAPT_NOTE, composeFor, filmingStatus } from './sessionPlan';
 import type { Baseline } from '../engine/progress';
 import {
-  blockDue, buildRun, changeover, countSoFar, fitMinutes, MODE_LABEL, msLeft, plannedTotal,
+  blockDue, changeover, countSoFar, fitMinutes, MODE_LABEL, msLeft, plannedTotal,
   type BlockMode, type CountUnit, type EndRule, type PracticeSession, type RunBlock,
 } from '../engine/session';
 import { askExactAlarms, cancelBlockEnd, prepareNotifications, scheduleBlockEnd } from '../notify';
@@ -14,10 +16,11 @@ import { isNative } from '../platform';
 import { sounds, unlockAudio } from './sound';
 import { useWakeLock } from './TallyScreen';
 import { TableDiagram } from './TableDiagram';
-import { rowsFor } from './ProgressScreen';
 import { fmtTime } from './format';
 
 const NOTE_ID = 7100;
+/** One Railbird tag for a whole filmed stretch. */
+export const FILM_TAG = 'ec-filmed';
 const clock = (ms: number) => { const s = Math.round(Math.abs(ms) / 1000); return `${ms < 0 ? '+' : ''}${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 export function useNow(ms = 500) { const [n, setN] = useState(Date.now()); useEffect(() => { const t = setInterval(() => setN(Date.now()), ms); return () => clearInterval(t); }, [ms]); return n; }
 
@@ -25,7 +28,7 @@ type Props = {
   data: AppData; baseline: Baseline | null; plan: PlanSettings; drills: DrillDef[]; tallies: TallySession[]; games: Game[];
   session: PracticeSession | null; device: string;
   onSave: (s: PracticeSession) => Promise<void>; onDelete: (id: string) => Promise<void>;
-  onStartTally: (d: DrillDef) => Promise<string>; onOpenTally: () => void; onEndTally: (id: string) => Promise<void>;
+  onStartTally: (d: DrillDef, opts?: { level?: number; variant?: string; target?: number }) => Promise<string>; onOpenTally: () => void; onEndTally: (id: string) => Promise<void>;
   onOpenScorer: () => void; onAddNote: (text: string) => Promise<void>; onDone: () => void; onGoPlan: () => void;
 };
 
@@ -39,16 +42,14 @@ export function SessionScreen(p: Props) {
 // ---------- 1. review the plan's blocks ----------
 
 function Review(p: Props) {
-  const rows = rowsFor(p.data);
-  const planned = useMemo(() => {
-    if (!p.baseline || !rows.length) return null;
-    const plan = buildPlan(p.baseline, rows, p.plan.period);
-    return buildRun(sessionBlocks(plan, p.plan.hidden, p.plan.minutes), p.drills, p.plan.minutes);
-  }, [p.baseline, p.data.exclusions, p.plan, p.drills]);
-  const [run, setRun] = useState<RunBlock[] | null>(planned);
-  useEffect(() => setRun(planned), [planned]);
+  const [kind, setKind] = useState<Kind>('planned');
+  const film0 = filmingStatus(p);
+  const [film, setFilm] = useState(film0.due);
+  const composed = useMemo(() => composeFor(p, kind, film), [p.baseline, p.data.exclusions, p.plan, p.drills, p.tallies.length, p.games.length, kind, film]);
+  const [run, setRun] = useState<RunBlock[] | null>(composed.run);
+  useEffect(() => setRun(composed.run), [composed]);
   const [perm, setPerm] = useState<{ ok: boolean; exact: boolean } | null>(null);
-  if (!run) return <section><h2>Practice session</h2><p class="muted">The session is built from your practice plan, which needs imported Railbird data first.</p></section>;
+  if (!run) return null;
 
   const byId = new Map(p.drills.map(d => [d.id, d]));
   const set = (i: number, patch: Partial<RunBlock>) => setRun(run.map((b, k) => (k === i ? { ...b, ...patch } : b)));
@@ -67,6 +68,19 @@ function Review(p: Props) {
     <section>
       <h2>Practice session</h2>
       <p class="lede">Your next session, block by block; each block waits for your tap before its timer starts.</p>
+      <div class="seg wrap" role="group" aria-label="Session" style={{ margin: '0 0 8px' }}>
+        <button aria-pressed={kind === 'planned'} onClick={() => setKind('planned')}>Planned session</button>
+        <button aria-pressed={kind === 'tournament'} onClick={() => setKind('tournament')}>Tournament warm-up</button>
+        <button aria-pressed={kind === 'stroke'} onClick={() => setKind('stroke')}>Stroke workout</button>
+      </div>
+      <div class="notice learn-note small">{ADAPT_NOTE}</div>
+      {kind === 'planned' && <div class="card small" style={{ padding: '10px 12px' }}>
+        <label class="switch-row"><input type="checkbox" checked={film} onChange={() => setFilm(!film)} />
+          <span><b>Film part of this session with Railbird</b> (up to {film0.minutes} minutes). Filmed this week: {film0.done} of {film0.perWeek}.{film0.due ? '' : ' Your weekly filming is done, so this is tap-only unless you choose otherwise.'}</span></label>
+        {!composed.hasPlan && <p class="muted" style={{ margin: '6px 0 0' }}>Targets from your shot data appear here after you import Railbird exports; until then the session is stroke drills and a run-out.</p>}
+      </div>}
+      {kind === 'tournament' && <p class="small muted">Little table time before a match: five medium-speed basic stop shots. Add a block below if there's time.</p>}
+      {kind === 'stroke' && <p class="small muted">All three levels of each stroke drill, in order. Long: remove what you don't need.</p>}
       <ol class="run-list">
         {run.map((b, i) => {
           const d = b.drillId ? byId.get(b.drillId) : undefined;
@@ -84,7 +98,8 @@ function Review(p: Props) {
                 <label>Minutes<span class="stepper">
                   <button class="btn btn-s" onClick={() => set(i, { minutes: Math.max(3, b.minutes - 1) })} aria-label="One minute less">−</button>
                   <b class="num">{b.minutes}</b>
-                  <button class="btn btn-s" onClick={() => set(i, { minutes: b.minutes + 1 })} aria-label="One minute more">+</button></span></label>
+                  <button class="btn btn-s" onClick={() => set(i, { minutes: b.minutes + 1 })} aria-label="One minute more">+</button></span>
+                  {estLabel(b) && <span class="small muted">{estLabel(b)}</span>}</label>
                 <label>Recording<select value={b.mode} onChange={e => { const m = (e.target as HTMLSelectElement).value as BlockMode; set(i, { mode: m, end: m === 'tap' ? b.end : 'time' }); }}>
                   {(Object.keys(MODE_LABEL) as BlockMode[]).filter(m => m !== 'tap' || (d && (d.counters !== 'none' || d.scorer))).map(m => <option key={m} value={m}>{MODE_LABEL[m]}</option>)}</select></label>
                 {b.mode === 'tap' && <EndFields b={b} onChange={patch => set(i, patch)} />}
@@ -102,7 +117,7 @@ function Review(p: Props) {
         <div class="row" style={{ alignItems: 'baseline' }}>
           <div><b class="num" style={{ fontSize: '1.4rem' }}>{total} minutes</b> <span class="small muted">including changeovers{total !== p.plan.minutes ? ` (plan: ${p.plan.minutes})` : ''}</span></div>
           <span class="spacer" />
-          {total !== p.plan.minutes && <button class="btn btn-s" onClick={() => setRun(fitMinutes(run.map(b => ({ ...b })), p.plan.minutes))}>Fit to {p.plan.minutes}</button>}
+          {kind === 'planned' && total !== p.plan.minutes && <button class="btn btn-s" onClick={() => setRun(fitMinutes(run.map(b => ({ ...b })), p.plan.minutes))}>Fit to {p.plan.minutes}</button>}
         </div>
         {isNative()
           ? <p class="small muted">Filmed blocks: put the phone on its stand and start Railbird; when time is up the phone and your watch alert you. Tap blocks: keep the phone with you; the tally opens when the block starts.</p>
@@ -152,7 +167,7 @@ function Runner(p: Props & { s: PracticeSession }) {
     unlockAudio(); sounds.start();
     const t = Date.now();
     let tallyId = b.tallyId;
-    if (b.mode === 'tap' && drill && drill.counters !== 'none' && !tallyId) tallyId = await p.onStartTally(drill);
+    if (b.mode === 'tap' && drill && drill.counters !== 'none' && !tallyId) tallyId = await p.onStartTally(drill, { level: b.level, variant: b.variant, target: b.target });
     await setBlock({ startedAt: new Date(t).toISOString(), tallyId });
     notify(t + b.minutes * 60000);
     if (b.mode === 'tap' && drill?.scorer) p.onOpenScorer();
@@ -186,7 +201,11 @@ function Runner(p: Props & { s: PracticeSession }) {
     await p.onSave({ ...s, blocks: s.blocks.map((x, i) => (i === s.current && x.startedAt ? { ...x, endedAt: t, counted: x.unit ? counted : undefined } : x)), current: s.blocks.length, paused: null, updated: t });
   }
 
-  const tags = drill ? (drill.railbirdBuiltIn ? [] : drill.tags.map(t => t.value)) : [];
+  // A filmed stretch uses one recording and one tag, so the phone stays on its stand.
+  const prevFilmed = s.blocks[s.current - 1]?.mode === 'record';
+  const filmedRun = b.mode === 'record' ? s.blocks.slice(s.current).findIndex(x => x.mode !== 'record') : 0;
+  const filmedMin = s.blocks.slice(s.current, filmedRun < 0 ? undefined : s.current + filmedRun).reduce((a, x) => a + x.minutes, 0);
+  const tags = b.mode === 'record' ? (prevFilmed ? [] : [FILM_TAG]) : drill ? (drill.railbirdBuiltIn ? [] : drill.tags.map(t => t.value)) : [];
   return (
     <section class="runner">
       <div class="row" style={{ alignItems: 'baseline' }}>
@@ -211,7 +230,7 @@ function Runner(p: Props & { s: PracticeSession }) {
           <div class={`mode-box m-${b.mode}`}>
             <b>{MODE_LABEL[b.mode]}</b>
             {b.mode === 'record' && <>
-              <div class="small">Put the phone on its stand and start Railbird{drill?.railbirdBuiltIn ? ` in its ${drill.railbirdBuiltIn === 'drillx-shot' ? 'X-shot' : 'spot-shot'} drill mode` : tags.length ? ' with this tag' : ''}.</div>
+              <div class="small">{prevFilmed ? 'Railbird keeps running from the last block: no new tag, no need to touch the phone.' : `Put the phone on its stand and start Railbird once with this tag. Leave it running through the filmed blocks (${filmedMin} minutes in all).`}</div>
               {tags.map(t => <button key={t} class="btn btn-s tag-copy" onClick={() => navigator.clipboard?.writeText(t)}>{t} · copy</button>)}
               <div class="small">Your phone and watch will alert you after {b.minutes} minutes.</div>
             </>}
@@ -231,13 +250,14 @@ function Runner(p: Props & { s: PracticeSession }) {
             <button class="btn primary big-btn" onClick={nextBlock}>{next ? 'Next block' : 'Finish the session'}</button>
           </> : <>
             <div class="timer-big num">{s.paused ? clock(s.paused.remainingMs) : left != null ? clock(left) : ''}</div>
+            {b.end === 'count' && left != null && left < 0 && <div class="small" style={{ fontWeight: 600 }}>Past the planned {b.minutes} minutes: finish the drill. Your time is recorded for next time.</div>}
             {b.end !== 'count' && <div class="clock-bar"><span style={{ width: `${Math.max(0, Math.min(1, (left ?? 0) / (b.minutes * 60000))) * 100}%` }} /></div>}
             {b.unit && b.end !== 'time' && <div class="count-line num">{counted} of {b.count} {b.unit}</div>}
             {s.paused && <div class="small" style={{ color: 'var(--warn)', fontWeight: 600 }}>Paused</div>}
             <div class="row" style={{ gap: '8px', justifyContent: 'center', marginTop: '10px' }}>
               {b.mode === 'tap' && drill && (drill.scorer
                 ? <button class="btn primary" onClick={p.onOpenScorer}>Open the scorer</button>
-                : <button class="btn primary" onClick={b.tallyId && p.tallies.some(t => t.id === b.tallyId && !t.ended) ? p.onOpenTally : async () => { const id = await p.onStartTally(drill); await setBlock({ tallyId: id }); }}>Open the tally</button>)}
+                : <button class="btn primary" onClick={b.tallyId && p.tallies.some(t => t.id === b.tallyId && !t.ended) ? p.onOpenTally : async () => { const id = await p.onStartTally(drill, { level: b.level, variant: b.variant, target: b.target }); await setBlock({ tallyId: id }); }}>Open the tally</button>)}
               <button class="btn" onClick={pause}>{s.paused ? 'Resume' : 'Pause'}</button>
               <button class="btn" onClick={addMinute}>+1 min</button>
               <button class="btn" onClick={nextBlock}>End block now</button>
@@ -313,10 +333,15 @@ export function useSessionAlerts(s: PracticeSession | null, tallies: TallySessio
   if (!b?.startedAt) return;
   const key = `${s.id}:${s.current}:${b.startedAt}`;
   const drill = b.drillId ? drills.find(d => d.id === b.drillId) : undefined;
-  if (alerted.current !== key && blockDue(b, msLeft(s, now), countSoFar(b, tallies, games, drill))) {
+  const left = msLeft(s, now), counted = countSoFar(b, tallies, games, drill);
+  if (alerted.current !== key && blockDue(b, left, counted)) {
     alerted.current = key;
     sounds.expire();
     try { navigator.vibrate?.([400, 150, 400]); } catch { /* ignore */ }
+  } else if (b.end === 'count' && left != null && left <= 0 && alerted.current !== key && alerted.current !== `${key}:pace`) {
+    // Finish-each-drill: a soft chime at the planned time, then keep going.
+    alerted.current = `${key}:pace`;
+    sounds.warn();
   }
 }
 
