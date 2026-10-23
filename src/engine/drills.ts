@@ -299,7 +299,117 @@ const ctProg = (kind: 'follow' | 'draw'): ProgSpec => ({
   }],
 });
 
+// Basic stop and draw shots: cue ball on the center spot, object ball an inch off the side pocket's lip.
+const BASIC_OB: Pt = [50 - (1 + 2 * TABLE.ballR), 50];
+const basicStop: DiagramSpec = {
+  balls: [ob(BASIC_OB), cb([25, 50])],
+  paths: straightIn([25, 50], BASIC_OB, 'MR'),
+  notes: ['Short and straight into the side pocket. The cue ball should stop dead on the spot.'],
+};
+const basicDraw: DiagramSpec = {
+  balls: [ob(BASIC_OB), cb([25, 50])],
+  paths: straightIn([25, 50], BASIC_OB, 'MR', { draw: POCKETS.ML }),
+  notes: ['Draw the cue ball straight back into the opposite side pocket.'],
+};
+const stopCombo = (pos: 'stop' | 'dl' | 'dr', spin?: Side): MakeOutcome => ({
+  id: `b-${pos}${spin ? `-s${spin}` : ''}`,
+  label: `${pos === 'stop' ? (spin ? 'Stopped, spinning' : 'Stopped dead') : pos === 'dl' ? 'Drifted left' : 'Drifted right'}${pos !== 'stop' && spin ? `, spinning ${spin === 'L' ? 'left' : 'right'}` : pos === 'stop' && spin ? ` ${spin === 'L' ? 'left' : 'right'}` : ''}`,
+  quality: pos === 'stop' ? (spin ? 'good' : 'best') : undefined,
+  drift: pos === 'dl' ? 'L' : pos === 'dr' ? 'R' : undefined,
+  spin,
+  hidden: pos !== 'stop' && !!spin,
+  amend: pos !== 'stop' && !spin ? [{ label: '↺ also spinning left', to: `b-${pos}-sL` }, { label: 'also spinning right ↻', to: `b-${pos}-sR` }] : undefined,
+});
+const BASIC_STOP_PROG: ProgSpec = {
+  progressive: false, missKind: 'lr', bestLabel: 'stopped dead (no spin)',
+  levels: [{ label: 'Basic', cue: 'Cue ball on the center spot; object ball an inch off the side pocket’s lip.', diagram: basicStop }],
+  setSizes: [5, 7, 10, 15],
+  variants: [{ id: 'low', label: 'Low speed' }, { id: 'medium', label: 'Medium speed' }, { id: 'high', label: 'High speed' }],
+  phases: [{ id: 'stop', name: 'Stop', makes: 5, outcomes: [
+    stopCombo('stop'), stopCombo('stop', 'L'), stopCombo('stop', 'R'), stopCombo('dl'), stopCombo('dr'),
+    stopCombo('dl', 'L'), stopCombo('dl', 'R'), stopCombo('dr', 'L'), stopCombo('dr', 'R'),
+  ] }],
+  coaching: [
+    'Spinning but stopped on the spot: you didn’t hit the center of the cue ball.',
+    'Drifting left or right: you didn’t hit the center of the target.',
+    'Both together: both at once. Ideally it stops dead with no spin.',
+  ],
+};
+const BASIC_DRAW_PROG: ProgSpec = {
+  progressive: false, missKind: 'lr', bestLabel: 'drawn into the pocket',
+  levels: [{ label: 'Basic', cue: 'Cue ball on the center spot; object ball an inch off the side pocket’s lip.', diagram: basicDraw }],
+  phases: [{ id: 'draw', name: 'Draw', makes: 7, outcomes: [
+    { id: 'bd-in', label: 'Drew into the pocket', quality: 'best' },
+    { id: 'bd-rl', label: 'Rail, left of the pocket', quality: 'good', rail: 'L' },
+    { id: 'bd-rr', label: 'Rail, right of the pocket', quality: 'good', rail: 'R' },
+    { id: 'bd-short', label: 'Short of the rail' },
+  ] }],
+};
+
+// Thin cuts: cue ball on the center spot, cut into the nearest corner, alternating sides.
+const TC_R = 1 + TABLE.ballR;                                   // about an inch off the cushion
+const tc1L: Pt = [TC_R, 50 + D], tc1R: Pt = [TC_R, 50 - D];
+const thinCuts1: DiagramSpec = {
+  balls: [cb([25, 50]), ob(tc1L, '1'), ob(tc1R, '2')],
+  paths: [...shot([25, 50], tc1L, 'TL'), { kind: 'ob', points: [tc1R, POCKETS.BL] }, { kind: 'aim', points: [[25, 50], ghostBall(tc1R, POCKETS.BL)] }],
+  notes: [`About a ${cutAngle([25, 50], tc1L, POCKETS.TL).toFixed(0)}° cut. After each make, switch to the ball on the other side of the side pocket and cut the other way.`],
+};
+const tc2L: Pt = [D, 100 - TC_R], tc2R: Pt = [50 - D, 100 - TC_R];
+const thinCuts2: DiagramSpec = {
+  balls: [cb([25, 50]), ob(tc2L, '1'), ob(tc2R, '2')],
+  paths: [...shot([25, 50], tc2L, 'TL'), { kind: 'ob', points: [tc2R, POCKETS.TR] }, { kind: 'aim', points: [[25, 50], ghostBall(tc2R, POCKETS.TR)] }],
+  notes: [`A longer shot, about a ${cutAngle([25, 50], tc2L, POCKETS.TL).toFixed(0)}° cut. After each make, switch to the other corner on the same short rail.`],
+};
+const thinProg = (diagram: DiagramSpec, sides: [string, string]): ProgSpec => ({
+  progressive: false, missKind: 'thickthin', noQuality: true, alternate: sides,
+  levels: [{ label: 'Thin cuts', cue: 'Cue ball on the center spot.', diagram }],
+  phases: [{ id: 'cut', name: 'Cut', makes: 10, outcomes: [{ id: 'tc-made', label: 'Made' }] }],
+});
+
+export const THIN_CUT_DRILLS: DrillDef[] = [
+  {
+    id: 'thin-cuts-1', name: 'Thin cuts 1', category: 'reps', tags: [{ value: 'ec-thin-cuts-1' }], aliases: ['thin cut'],
+    diagram: thinCuts1, counters: 'progressive', prog: thinProg(thinCuts1, ['Head-side corner', 'Foot-side corner']),
+    setup: [
+      'Cue ball on the center spot. Object ball about an inch off the long rail, at the diamond next to the side pocket.',
+      'Cut it into the nearest corner pocket. After each make, put the next ball at the matching diamond on the other side of the side pocket and cut the other way.',
+      'Misses are thick (undercut) or thin (overcut); repeat until made. Very difficult: 5 makes each way can take 10 to 15 minutes.',
+    ],
+    target: { text: '5 makes in each direction (10 makes).', unit: 'makes' },
+  },
+  {
+    id: 'thin-cuts-2', name: 'Thin cuts 2', category: 'reps', tags: [{ value: 'ec-thin-cuts-2' }], aliases: [],
+    diagram: thinCuts2, counters: 'progressive', prog: thinProg(thinCuts2, ['Left corner', 'Right corner']),
+    setup: [
+      'Cue ball on the center spot. Object ball one diamond from a corner pocket along the short rail, about an inch off the rail.',
+      'Cut it into that corner. After each make, switch to the matching spot by the other corner on the same short rail.',
+      'Misses are thick or thin; at this distance it can be hard to tell, so use "not sure" rather than guess.',
+    ],
+    target: { text: '5 makes into each corner (10 makes).', unit: 'makes' },
+  },
+];
+
 const STROKE_DRILLS: DrillDef[] = [
+  {
+    id: 'basic-stops', name: 'Basic stop shots', category: 'stroke', tags: [{ value: 'ec-basic-stops' }], aliases: ['basic stop'],
+    diagram: basicStop, counters: 'progressive', prog: BASIC_STOP_PROG,
+    setup: [
+      'Cue ball on the center spot; object ball right in front of a side pocket, about an inch off the lip. Play stop shots.',
+      'Choose a speed: low, medium or high. Sets of 5 by default; 7 is about what a drop pocket holds, and longer sets suit deep practice.',
+      'Success is the cue ball stopping within one ball radius; ideally it stops dead with no spin. Note drift (left or right) and spin (left or right): they tell you about your stroke.',
+      'A beginner’s drill and a warm-up for any level: 5 medium-speed stop shots warm up an advanced player before a match.',
+    ],
+    target: { text: 'Sets of 5 (or 7+) at each speed.', unit: 'makes' },
+  },
+  {
+    id: 'basic-draws', name: 'Basic draw shots', category: 'stroke', tags: [{ value: 'ec-basic-draws' }], aliases: ['basic draw'],
+    diagram: basicDraw, counters: 'progressive', prog: BASIC_DRAW_PROG,
+    setup: [
+      'The same set-up as Basic stop shots: cue ball on the center spot, object ball an inch off the side pocket’s lip.',
+      'Draw the cue ball straight back into the opposite side pocket. Pocketed with perfectly straight draw is the goal; reaching the long rail is a partial success, so note which side of the pocket it hit.',
+    ],
+    target: { text: 'Sets of 7.', unit: 'makes' },
+  },
   {
     id: 'midtable-stops', name: 'Mid-table stop shots', category: 'stroke', tags: [{ value: 'ec-midtable-stops' }], aliases: ['centerline drill', 'mid-table stop'],
     diagram: midLevel(0), counters: 'progressive', prog: MID_PROG,
@@ -349,6 +459,7 @@ const STROKE_DRILLS: DrillDef[] = [
 
 const DRILL_DEFS: DrillDef[] = [
   ...STROKE_DRILLS,
+  ...THIN_CUT_DRILLS,
   {
     id: 'transitions-1', name: 'Transitions-1', category: 'transitions',
     tags: [{ value: 'ec-transitions-1' }], aliases: ['pool kata bassai 9 ball', 'pool kata', 'kata'],
@@ -464,7 +575,7 @@ export const CATEGORY_HINT: Record<DrillCategory, string> = {
   stroke: 'Straight-in stroke work, tapped shot by shot. Three levels each; the app moves you up or down from your results.',
   transitions: 'Pattern drills: ball-to-ball position. Measured by completion.',
   runout: 'Full racks, scored like bowling. Set aside time to finish all ten frames.',
-  reps: 'Fixed single-shot drills. Measured by make % from Railbird.',
+  reps: 'Fixed single-shot drills: tapped on the phone, or measured by make % from Railbird.',
   calibration: 'Tests that pin down how Railbird reads spin and where your misses go.',
 };
 

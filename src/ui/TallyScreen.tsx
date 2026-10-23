@@ -112,7 +112,9 @@ export function TallyScreen({ drill, session, tallies = [], onChange, onFinish, 
         </div>
       ) : drill.counters === 'progressive' && drill.prog
         ? <ProgressiveTally drill={drill} session={session} tallies={tallies} push={push}
-            onLevel={lv => commit({ ...latest.current, level: lv, updated: new Date().toISOString() })}
+            onPatch={patch => commit({ ...latest.current, ...patch, updated: new Date().toISOString() })}
+            onAmend={res => { const cur = latest.current; const ev = cur.events.slice(); const last = ev[ev.length - 1]; if (!last) return;
+              ev[ev.length - 1] = { ...last, res }; commit({ ...cur, events: ev, updated: new Date().toISOString() }); }}
             onFinish={() => onFinish({ ...latest.current, ended: new Date().toISOString(), updated: new Date().toISOString() })} />
       : drill.counters === 'completion'
         ? <Completion drill={drill} session={session} push={push}

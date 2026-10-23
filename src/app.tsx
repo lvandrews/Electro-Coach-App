@@ -374,7 +374,7 @@ export function App() {
           : tab === 'play' ? <PlayScreen mode={playMode} onMode={pickPlay} games={games} device={device} onSaveGame={saveGame} onDeleteGame={deleteGame} />
           : tab === 'plan' ? <PlanScreen data={data} drills={drills} baseline={baseline} pins={pins} plan={plan}
               onBaseline={updateBaseline} onPlan={updatePlan} onPins={updatePins} onOpenDrill={openDrill} onGo={go} />
-          : tab === 'settings' ? <SettingsScreen data={data} device={device} onDevice={renameDevice} onRules={updateRules} onRestored={reload} onBackedUp={setLastBackup} onGo={go} />
+          : tab === 'settings' ? <SettingsScreen data={data} drills={drills} tallies={tallies} device={device} onDevice={renameDevice} onRules={updateRules} onRestored={reload} onBackedUp={setLastBackup} onGo={go} />
           : tab === 'about' ? <AboutScreen onGo={go} />
           : null}
       </main>

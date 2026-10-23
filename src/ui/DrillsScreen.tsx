@@ -315,11 +315,13 @@ function TallySummary({ drill, t }: { drill: DrillDef; t: TallySession }) {
     const m = sm.misses;
     return (
       <p class="num" style={{ margin: '4px 0' }}>
-        {drill.prog.progressive && <>Level {t.level ?? 1} · </>}{sm.makes} of {sm.attempts} made ({pct(sm.makePct)}), quality {pct(sm.qualityPct)}
+        {drill.prog.progressive && <>Level {t.level ?? 1} · </>}{t.variant && <>{drill.prog.variants?.find(v => v.id === t.variant)?.label ?? t.variant} · </>}{sm.makes} of {sm.attempts} made ({pct(sm.makePct)}){!drill.prog.noQuality && <>, quality {pct(sm.qualityPct)}</>}
         {sm.best > 0 && <>, {sm.best} {drill.prog.bestLabel ?? 'best'}</>}
-        {!sm.complete && <> · unfinished ({sm.makes} of {requiredMakes(drill.prog)} makes)</>}
+        {!sm.complete && <> · unfinished ({sm.makes} of {requiredMakes(drill.prog, t.target)} makes)</>}
         {(m.L + m.R + m.thick + m.thin) > 0 && <> · misses {drill.prog.missKind === 'lr' ? `${m.L} left, ${m.R} right` : `${m.thick} thick, ${m.thin} thin`}</>}
         {(sm.drift.L + sm.drift.R) > 0 && <> · drift {sm.drift.L}L {sm.drift.R}R</>}
+        {(sm.spin.L + sm.spin.R) > 0 && <> · spin {sm.spin.L}L {sm.spin.R}R</>}
+        {(sm.rail.L + sm.rail.R) > 0 && <> · rail {sm.rail.L}L {sm.rail.R}R</>}
       </p>
     );
   }
@@ -524,13 +526,14 @@ function LevelPanel({ drill, tallies, state }: { drill: DrillDef; tallies: Tally
       </> : <h3 style={{ margin: 0 }}>Your sets</h3>}
 
       {done.length > 0 && <div class="scroll-x"><table class="tally-table compact" style={{ marginTop: '8px' }}>
-        <thead><tr>{spec.progressive && <th>Level</th>}<th class="n">Sets</th><th class="n">Last made</th><th class="n">Last quality</th><th class="n">Best quality</th></tr></thead>
-        <tbody>{(spec.progressive ? spec.levels.map((_, i) => i + 1) : [1]).map(lv => {
-          const ts = spec.progressive ? at(lv) : done;
+        <thead><tr>{(spec.progressive || spec.variants) && <th>{spec.progressive ? 'Level' : 'Speed'}</th>}<th class="n">Sets</th><th class="n">Last made</th>{!spec.noQuality && <><th class="n">Last quality</th><th class="n">Best quality</th></>}</tr></thead>
+        <tbody>{(spec.progressive ? spec.levels.map((_, i) => ({ k: String(i + 1), label: String(i + 1), ts: at(i + 1) }))
+          : spec.variants ? spec.variants.map(v => ({ k: v.id, label: v.label, ts: done.filter(t => t.variant === v.id) }))
+          : [{ k: 'all', label: '', ts: done }]).map(({ k, label, ts }) => {
           if (!ts.length) return null;
           const last = summarize(spec, ts[0]);
           const bestQ = Math.max(...ts.map(t => summarize(spec, t).qualityPct ?? 0));
-          return <tr key={lv}>{spec.progressive && <td>{lv}</td>}<td class="n">{ts.length}</td><td class="n">{pct(last.makePct)}</td><td class="n">{pct(last.qualityPct)}</td><td class="n">{pct(bestQ)}</td></tr>;
+          return <tr key={k}>{(spec.progressive || spec.variants) && <td>{label}</td>}<td class="n">{ts.length}</td><td class="n">{pct(last.makePct)}</td>{!spec.noQuality && <><td class="n">{pct(last.qualityPct)}</td><td class="n">{pct(bestQ)}</td></>}</tr>;
         })}</tbody>
       </table></div>}
       {done.length > 0 && spec.progressive && <p class="small muted" style={{ margin: '4px 0 0' }}>Last set: {(() => { const v = verdictOf(summarize(spec, done[0]), th); return v === 'good' ? 'at the move-up bar' : v === 'poor' ? 'below the bar' : 'in between'; })()}.</p>}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BUILTIN_DRILLS } from '../src/engine/drills';
-import { currentPhase, levelState, makeEvent, missEvent, requiredMakes, summarize, verdictOf, type ProgSpec } from '../src/engine/progressive';
+import { currentPhase, levelState, makeEvent, missEvent, requiredMakes, sideNow, summarize, verdictOf, type ProgSpec } from '../src/engine/progressive';
 import type { TallyEvent, TallySession } from '../src/engine/tally';
 
 const X = BUILTIN_DRILLS.find(d => d.id === 'xdrill')!;
@@ -78,5 +78,39 @@ describe('progressive drills', () => {
   it('non-progressive specs stay at level 1', () => {
     const flat: ProgSpec = { ...spec, progressive: false };
     expect(levelState(flat, [xSet(9, 0, 1), xSet(9, 0, 1)]).level).toBe(1);
+  });
+});
+
+describe('basic and thin-cut drills', () => {
+  const find = (id: string) => BUILTIN_DRILLS.find(d => d.id === id)!;
+  it('uses the chosen set size for basic stop shots, with spin and drift', () => {
+    const sp = find('basic-stops').prog!;
+    const ph = sp.phases[0];
+    const o = (id: string) => ph.outcomes.find(x => x.id === id)!;
+    const events = [o('b-stop'), o('b-stop-sR'), o('b-dl'), o('b-dl-sR'), o('b-stop')].map(x => ev(makeEvent(x, ph)));
+    const s = summarize(sp, { events, target: 5 });
+    expect(requiredMakes(sp, 5)).toBe(5); expect(requiredMakes(sp, 7)).toBe(7);
+    expect(s.complete).toBe(true);
+    expect(s.quality).toBe(3); expect(s.best).toBe(2);           // within a radius: 3; stopped dead: 2
+    expect(s.spin).toEqual({ L: 0, R: 2 }); expect(s.drift).toEqual({ L: 2, R: 0 });
+    expect(summarize(sp, { events, target: 7 }).complete).toBe(false);
+    expect(ph.outcomes.filter(x => !x.hidden)).toHaveLength(5);
+  });
+  it('records basic draw shots reaching the rail left or right', () => {
+    const sp = find('basic-draws').prog!; const ph = sp.phases[0];
+    const s = summarize(sp, { events: ['bd-in', 'bd-rl', 'bd-rr', 'bd-rl', 'bd-short'].map(id => ev(makeEvent(ph.outcomes.find(x => x.id === id)!, ph))) });
+    expect(s.rail).toEqual({ L: 2, R: 1 }); expect(s.quality).toBe(4); expect(s.best).toBe(1); expect(requiredMakes(sp)).toBe(7);
+  });
+  it('alternates thin cuts after every make and scores make % only', () => {
+    const sp = find('thin-cuts-1').prog!; const ph = sp.phases[0]; const made = ph.outcomes[0];
+    const events: TallyEvent[] = [];
+    const tap = (e: Omit<TallyEvent, 't'>) => events.push(ev(e));
+    expect(sideNow(sp, events)).toBe('L');
+    tap(missEvent('thin', ph, sideNow(sp, events))); expect(sideNow(sp, events)).toBe('L');
+    tap(makeEvent(made, ph, sideNow(sp, events))); expect(sideNow(sp, events)).toBe('R');
+    tap(missEvent('thick', ph, sideNow(sp, events))); tap(makeEvent(made, ph, sideNow(sp, events)));
+    const s = summarize(sp, { events });
+    expect(s.bySide.L).toEqual({ makes: 1, attempts: 2 }); expect(s.bySide.R).toEqual({ makes: 1, attempts: 2 });
+    expect(s.misses.thick).toBe(1); expect(s.misses.thin).toBe(1); expect(s.qualityPct).toBeNull(); expect(requiredMakes(sp)).toBe(10);
   });
 });

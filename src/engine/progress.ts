@@ -265,9 +265,9 @@ export function drillMeters(drills: DrillDef[], shotSessions: DrillShotSession[]
     } else if (d.prog && ts.length) {
       const spec = d.prog;
       const sets = ts.filter(t => t.ended).map(t => ({ t, s: summarize(spec, t) })).filter(x => x.s.complete);
-      kind = 'diagnostic'; unit = 'quality (tapped)'; target = 3;
-      points = sets.map(({ t, s }) => ({ date: t.started, n: s.makes, value: s.qualityPct ?? 0,
-        detail: `${spec.progressive ? `Level ${t.level ?? 1}: ` : ''}made ${Math.round(100 * (s.makePct ?? 0))}%, quality ${Math.round(100 * (s.qualityPct ?? 0))}%`, source: 'tally' as const }));
+      kind = 'diagnostic'; unit = spec.noQuality ? 'make rate (tapped)' : 'quality (tapped)'; target = 3;
+      points = sets.map(({ t, s }) => ({ date: t.started, n: s.makes, value: (spec.noQuality ? s.makePct : s.qualityPct) ?? 0,
+        detail: `${spec.progressive ? `Level ${t.level ?? 1}: ` : ''}made ${Math.round(100 * (s.makePct ?? 0))}%${spec.noQuality ? '' : `, quality ${Math.round(100 * (s.qualityPct ?? 0))}%`}`, source: 'tally' as const }));
       const l = sets.reduce((a, x) => a + x.s.misses.L, 0), r = sets.reduce((a, x) => a + x.s.misses.R, 0);
       const th = sets.reduce((a, x) => a + x.s.misses.thick, 0), tn = sets.reduce((a, x) => a + x.s.misses.thin, 0);
       const dl = sets.reduce((a, x) => a + x.s.drift.L, 0), dr = sets.reduce((a, x) => a + x.s.drift.R, 0);

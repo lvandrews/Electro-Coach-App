@@ -36,3 +36,25 @@ export function drillLevel(d: DrillDef, tallies: TallySession[]): LevelState {
   if (!d.prog) return { level: 1, good: 0, poor: 0, mastered: false };
   return levelState(d.prog, tallies.filter(t => t.drillId === d.id), getThresholds(d.id), getOverride(d.id));
 }
+
+// ---------- player stage (drives which warm-ups and stroke drills the plan picks) ----------
+
+export type Stage = 'new' | 'developing' | 'advanced';
+export const STAGE_LABEL: Record<Stage, string> = { new: 'New', developing: 'Developing', advanced: 'Advanced' };
+const K_STAGE = 'ec-stage';
+export const getStageSetting = (): Stage | null => { const v = read<string | null>(K_STAGE, null); return v === 'new' || v === 'developing' || v === 'advanced' ? v : null; };
+export function setStage(s: Stage | null) { if (s) write(K_STAGE, s); else { try { localStorage.removeItem(K_STAGE); } catch { /* ignore */ } } changed(); }
+
+/**
+ * Suggested from the stroke drills: X-drill at Level 3 → Advanced; three or more finished
+ * stroke sets all still at Level 1 → New; otherwise (including no stroke sets yet) Developing.
+ */
+export function suggestStage(drills: DrillDef[], tallies: TallySession[]): Stage {
+  const prog = drills.filter(d => d.prog?.progressive);
+  const x = drills.find(d => d.id === 'xdrill');
+  if (x && drillLevel(x, tallies).level >= 3) return 'advanced';
+  const sets = tallies.filter(t => t.ended && prog.some(d => d.id === t.drillId)).length;
+  if (sets >= 3 && prog.every(d => drillLevel(d, tallies).level <= 1)) return 'new';
+  return 'developing';
+}
+export const getStage = (drills: DrillDef[], tallies: TallySession[]): Stage => getStageSetting() ?? suggestStage(drills, tallies);

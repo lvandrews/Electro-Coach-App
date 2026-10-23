@@ -1,4 +1,4 @@
-import { useRef, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { AppData } from '../app';
 import { RULES, DEFAULT_RULES, tally, type RuleConfig, type RuleId } from '../engine/rules';
 import * as store from '../store/db';
@@ -9,6 +9,9 @@ import { int, localYmd } from './format';
 import { SLOT_CHOICES, DEFAULT_BAR, type Tab } from './nav';
 import { track } from '../usage';
 import { UsageSettings } from './Usage';
+import type { DrillDef } from '../engine/drills';
+import type { TallySession } from '../engine/tally';
+import { getStageSetting, onProgPrefs, setStage, suggestStage, STAGE_LABEL, type Stage } from './progPrefs';
 import { setPrefs, usePrefs, type DataPalette, type HeatPalette, type ThemePref, type TierPalette } from './prefs';
 
 const THRESHOLDS: Partial<Record<RuleId, { key: keyof RuleConfig; unit: string; step: number }>> = {
@@ -18,9 +21,9 @@ const THRESHOLDS: Partial<Record<RuleId, { key: keyof RuleConfig; unit: string; 
   break: { key: 'breakMph', unit: 'mph', step: 0.5 },
 };
 
-interface Props { data: AppData; device: string; onDevice: (n: string) => void; onRules: (r: RuleConfig) => void; onRestored: () => Promise<void>; onBackedUp: (iso: string) => void; onGo: (t: Tab) => void }
+interface Props { data: AppData; drills: DrillDef[]; tallies: TallySession[]; device: string; onDevice: (n: string) => void; onRules: (r: RuleConfig) => void; onRestored: () => Promise<void>; onBackedUp: (iso: string) => void; onGo: (t: Tab) => void }
 
-export function SettingsScreen({ data, device, onDevice, onRules, onRestored, onBackedUp, onGo }: Props) {
+export function SettingsScreen({ data, drills, tallies, device, onDevice, onRules, onRestored, onBackedUp, onGo }: Props) {
   const r = data.rules;
   const counts = Object.fromEntries(tally(data.exclusions).map(t => [t.id, t]));
   const file = useRef<HTMLInputElement>(null);
@@ -65,6 +68,7 @@ export function SettingsScreen({ data, device, onDevice, onRules, onRestored, on
       {msg && <div class="notice good" role="status">{msg}</div>}
       <button class="btn btn-s" style={{ marginBottom: '10px' }} onClick={() => onGo('about')}>About, updates and feedback</button>
 
+      <PlayerStage drills={drills} tallies={tallies} />
       <Appearance />
       <Reminders />
       <UsageSettings />
@@ -219,6 +223,26 @@ function Appearance() {
         </div>
         {p.bar.join() !== DEFAULT_BAR.join() && <button class="btn btn-s" style={{ width: 'fit-content' }} onClick={() => setPrefs({ bar: DEFAULT_BAR })}>Restore Home · Practice · Play · Progress</button>}
       </div>
+    </div>
+  );
+}
+
+function PlayerStage({ drills, tallies }: { drills: DrillDef[]; tallies: TallySession[] }) {
+  const [, bump] = useState(0);
+  useEffect(() => onProgPrefs(() => bump(v => v + 1)), []);
+  const chosen = getStageSetting(), suggested = suggestStage(drills, tallies);
+  const now = chosen ?? suggested;
+  return (
+    <div class="card">
+      <h3>Player stage</h3>
+      <p class="small muted" style={{ marginTop: 0 }}>Decides which warm-ups and stroke drills the practice plan picks. New players get basic stop shots; advanced players get more follow and draw work.</p>
+      <div class="seg" role="group" aria-label="Player stage">
+        {(['new', 'developing', 'advanced'] as Stage[]).map(s => <button key={s} aria-pressed={now === s} onClick={() => setStage(s)}>{STAGE_LABEL[s]}</button>)}
+      </div>
+      <p class="small" style={{ margin: '6px 0 0' }}>
+        {chosen ? <>Set by you. Your stroke drills suggest <b>{STAGE_LABEL[suggested]}</b>. <button class="link-btn" onClick={() => setStage(null)}>Use the suggestion</button></>
+          : <>Suggested from your stroke drill levels; tap one to choose it yourself.</>}
+      </p>
     </div>
   );
 }

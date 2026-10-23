@@ -723,7 +723,9 @@ details.card > summary { font-size: 1.02rem; }
 .prog-phase-name { font-size: clamp(1.5rem, 7vw, 2.2rem); font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
 .prog-phase-count { font-size: clamp(2.6rem, 13vw, 4.2rem); font-weight: 800; line-height: 1; }
 .prog-makes { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
-.prog-makes.n3 > :first-child { grid-column: 1 / -1; }
+.prog-makes.n3 > :first-child, .prog-makes.n5 > :first-child { grid-column: 1 / -1; }
+.prog-amend { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 12px; background: color-mix(in srgb, var(--warn) 14%, var(--card)); }
+.prog-amend .btn { min-height: 44px; font-weight: 700; }
 .prog-makes.n1 { grid-template-columns: 1fr; }
 .prog-btn { min-height: 72px; font-size: 1.2rem; font-weight: 800; justify-content: center; text-align: center; white-space: normal; line-height: 1.15; }
 .prog-btn.good { border: 3px solid var(--good); }

@@ -34,6 +34,7 @@ export interface TallySession {
   learning?: boolean;   // the Learning (ball in hand) switch, as last set
   level?: number;       // progressive drills: the level played (1–3)
   variant?: string;     // drills with variants: e.g. the speed for basic stop shots
+  target?: number;      // drills with a chosen set size: makes in this set
 }
 
 export interface TallyFile {

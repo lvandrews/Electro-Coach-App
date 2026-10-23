@@ -18,6 +18,9 @@ export interface MakeOutcome {
   quality?: 'good' | 'best';   // counts toward quality %; 'best' is also shown on its own
   drift?: Side;                // stop shots: the cue ball drifted left or right
   spin?: Side;                 // basic stop shots: spinning in place
+  rail?: Side;                 // basic draw shots: reached the rail left or right of the pocket
+  hidden?: boolean;            // reached only by amending another outcome (drift + spin)
+  amend?: { label: string; to: string }[];   // follow-up choices that replace this outcome
 }
 export interface ProgPhase { id: string; name: string; makes: number; outcomes: MakeOutcome[] }
 export interface ProgLevel { label: string; cue: string; diagram: DiagramSpec | null }
@@ -30,19 +33,32 @@ export interface ProgSpec {
   handed?: boolean;            // the diagram depends on the shooter's hand
   coaching?: string[];
   bestLabel?: string;          // what "best" means here, for summaries
+  setSizes?: number[];         // single-phase drills whose set size you choose (the first is the default)
+  variants?: { id: string; label: string }[];   // e.g. low / medium / high speed: recorded with the set
+  alternate?: [string, string];                 // switch side after every make (labels for the two sides)
+  noQuality?: boolean;         // make or miss only (thin cuts): no quality %
 }
 
 export interface Thresholds { upMake: number; upQuality: number; downMake: number; downQuality: number }
 export const DEFAULT_THRESHOLDS: Thresholds = { upMake: 0.8, upQuality: 0.7, downMake: 0.7, downQuality: 0.5 };
 
-export const requiredMakes = (spec: ProgSpec) => spec.phases.reduce((a, p) => a + p.makes, 0);
+/** Makes in a full set: the phases' total, or the chosen set size for single-phase drills. */
+export const requiredMakes = (spec: ProgSpec, target?: number) =>
+  spec.phases.length === 1 && target ? target : spec.phases.reduce((a, p) => a + p.makes, 0);
+const phaseMakes = (spec: ProgSpec, ph: ProgPhase, target?: number) => (spec.phases.length === 1 && target ? target : ph.makes);
+
+/** Which side the next shot is on, for drills that alternate after every make. */
+export function sideNow(spec: ProgSpec, events: TallyEvent[]): Side | undefined {
+  if (!spec.alternate) return undefined;
+  return events.filter(e => e.key === 'make').length % 2 === 0 ? 'L' : 'R';
+}
 
 /** Event shape: key 'make' or 'miss'; res = outcome id or miss direction; ph = phase id. */
-export function makeEvent(o: MakeOutcome, phase: ProgPhase): Omit<TallyEvent, 't'> {
-  return { key: 'make', res: o.id, ph: phase.id };
+export function makeEvent(o: MakeOutcome, phase: ProgPhase, side?: Side): Omit<TallyEvent, 't'> {
+  return { key: 'make', res: o.id, ph: phase.id, ...(side ? { side } : {}) };
 }
-export function missEvent(dir: MissDir, phase: ProgPhase): Omit<TallyEvent, 't'> {
-  return { key: 'miss', res: dir, ph: phase.id };
+export function missEvent(dir: MissDir, phase: ProgPhase, side?: Side): Omit<TallyEvent, 't'> {
+  return { key: 'miss', res: dir, ph: phase.id, ...(side ? { side } : {}) };
 }
 
 const outcomeOf = (spec: ProgSpec, phId: string | undefined, res: string | undefined): MakeOutcome | undefined =>
@@ -50,36 +66,39 @@ const outcomeOf = (spec: ProgSpec, phId: string | undefined, res: string | undef
   ?? spec.phases.flatMap(p => p.outcomes).find(o => o.id === res);
 
 /** Which phase the next shot belongs to, and how many makes it has so far. */
-export function currentPhase(spec: ProgSpec, events: TallyEvent[]): { index: number; phase: ProgPhase; made: number; done: boolean } {
+export function currentPhase(spec: ProgSpec, events: TallyEvent[], target?: number): { index: number; phase: ProgPhase; made: number; of: number; done: boolean } {
   let makes = events.filter(e => e.key === 'make').length;
   for (let i = 0; i < spec.phases.length; i++) {
-    const ph = spec.phases[i];
-    if (makes < ph.makes) return { index: i, phase: ph, made: makes, done: false };
-    makes -= ph.makes;
+    const ph = spec.phases[i], n = phaseMakes(spec, ph, target);
+    if (makes < n) return { index: i, phase: ph, made: makes, of: n, done: false };
+    makes -= n;
   }
-  const last = spec.phases[spec.phases.length - 1];
-  return { index: spec.phases.length - 1, phase: last, made: last.makes, done: true };
+  const last = spec.phases[spec.phases.length - 1], n = phaseMakes(spec, last, target);
+  return { index: spec.phases.length - 1, phase: last, made: n, of: n, done: true };
 }
 
 export interface ProgSummary {
   makes: number; attempts: number; quality: number; best: number;
   makePct: number | null; qualityPct: number | null;
   misses: Record<MissDir, number>;
-  drift: Record<Side, number>; spin: Record<Side, number>;
+  drift: Record<Side, number>; spin: Record<Side, number>; rail: Record<Side, number>;
+  bySide: Record<Side, { makes: number; attempts: number }>;
   byPhase: Record<string, { makes: number; attempts: number; quality: number; best: number }>;
   complete: boolean;
 }
 
-export function summarize(spec: ProgSpec, s: Pick<TallySession, 'events'>): ProgSummary {
+export function summarize(spec: ProgSpec, s: Pick<TallySession, 'events'> & { target?: number }): ProgSummary {
   const out: ProgSummary = {
     makes: 0, attempts: 0, quality: 0, best: 0, makePct: null, qualityPct: null,
-    misses: { L: 0, R: 0, thick: 0, thin: 0, '?': 0 }, drift: { L: 0, R: 0 }, spin: { L: 0, R: 0 }, byPhase: {}, complete: false,
+    misses: { L: 0, R: 0, thick: 0, thin: 0, '?': 0 }, drift: { L: 0, R: 0 }, spin: { L: 0, R: 0 }, rail: { L: 0, R: 0 },
+    bySide: { L: { makes: 0, attempts: 0 }, R: { makes: 0, attempts: 0 } }, byPhase: {}, complete: false,
   };
   for (const e of s.events) {
     if (e.key !== 'make' && e.key !== 'miss') continue;
     const ph = e.ph ?? spec.phases[0].id;
     const b = (out.byPhase[ph] ??= { makes: 0, attempts: 0, quality: 0, best: 0 });
     out.attempts++; b.attempts++;
+    if (e.side) { out.bySide[e.side].attempts++; if (e.key === 'make') out.bySide[e.side].makes++; }
     if (e.key === 'miss') { const d = (e.res ?? '?') as MissDir; out.misses[d in out.misses ? d : '?']++; continue; }
     out.makes++; b.makes++;
     const o = outcomeOf(spec, e.ph, e.res);
@@ -87,10 +106,11 @@ export function summarize(spec: ProgSpec, s: Pick<TallySession, 'events'>): Prog
     if (o?.quality === 'best') { out.best++; b.best++; }
     if (o?.drift) out.drift[o.drift]++;
     if (o?.spin) out.spin[o.spin]++;
+    if (o?.rail) out.rail[o.rail]++;
   }
   out.makePct = out.attempts ? out.makes / out.attempts : null;
-  out.qualityPct = out.makes ? out.quality / out.makes : null;
-  out.complete = out.makes >= requiredMakes(spec);
+  out.qualityPct = spec.noQuality ? null : out.makes ? out.quality / out.makes : null;
+  out.complete = out.makes >= requiredMakes(spec, s.target);
   return out;
 }
 

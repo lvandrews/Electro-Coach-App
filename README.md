@@ -115,6 +115,16 @@ A set scores make % and quality %. Two sets in a row at 80% made and 70% quality
 level; two in a row under 70% made or 50% quality move you down (one bad day never does). The
 thresholds are adjustable, and you can always set the level yourself.
 
+**Basic drills.** **Basic stop shots** (cue ball on the center spot, object ball an inch off a
+side pocket's lip; low, medium or high speed; sets of 5 or more) record whether the cue ball
+stopped dead, stopped spinning, or drifted, and turn the pattern into feedback: spin means you
+missed the center of the cue ball, drift means you missed the center of the target. **Basic
+draw shots** (sets of 7) record a draw into the opposite side pocket, or to the rail left or
+right of it. **Thin cuts 1 and 2** (cue ball on the center spot; object ball by the side pocket
+or by a corner on the short rail) alternate sides after every make, 5 each way, with misses
+tapped thick, thin or not sure. **Settings → Player stage** (New, Developing, Advanced,
+suggested from your stroke drill levels) tells the practice plan which warm-ups to pick.
+
 **Drills and tallies.** Every drill has a diagram, its Railbird tag with a copy button, set-up
 notes and a target. Most drills need no taps; Railbird records the shots. Transitions drills
 take one entry per rack (ran out, or the ball where it ended and why: missed, or out of line);
