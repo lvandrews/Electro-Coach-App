@@ -1,4 +1,5 @@
-import { summarize } from '../engine/progressive';
+import { summarize, verdictOf, type Verdict } from '../engine/progressive';
+import { getThresholds } from './progPrefs';
 import { useMemo, useState } from 'preact/hooks';
 import type { AppData } from '../app';
 import type { DrillDef } from '../engine/drills';
@@ -12,7 +13,10 @@ import { fmtDate, fmtTime, int, pct, plural } from './format';
 // timed practice sessions, newest first.
 
 export type ActivityKind = 'practice' | 'railbird' | 'tally' | 'bowling' | 'straight';
-export interface Activity { id: string; kind: ActivityKind; date: string; title: string; detail: string; ref: string; live?: boolean }
+export interface Activity {
+  id: string; kind: ActivityKind; date: string; title: string; detail: string; ref: string; live?: boolean;
+  made?: number; attempts?: number; verdict?: Verdict;   // for the morning recap
+}
 
 export const KIND_LABEL: Record<ActivityKind, string> = { practice: 'Practice session', railbird: 'Railbird', tally: 'Tally', bowling: 'Bowling drill', straight: 'Straight pool' };
 
@@ -21,25 +25,30 @@ export function activities(data: AppData, tallies: TallySession[], games: Game[]
   for (const s of summarizeSessions(data.shotList, data.exclusions)) {
     out.push({ id: `rb-${s.sessionId}`, kind: 'railbird', date: s.start, ref: String(s.sessionId),
       title: s.sessionType === 'Free play' ? (s.name || 'Free play') : s.sessionType,
-      detail: `${int(s.valid)} kept shots${s.makeRate != null ? `, made ${pct(s.makeRate)}` : ''}${s.tableSize ? ` · ${s.tableSize}` : ''}` });
+      detail: `${int(s.valid)} kept shots${s.makeRate != null ? `, made ${pct(s.makeRate)}` : ''}${s.tableSize ? ` · ${s.tableSize}` : ''}`,
+      ...(s.makeRate != null && s.valid ? { made: Math.round(s.makeRate * s.valid), attempts: s.valid } : {}) });
   }
   for (const t of tallies) {
     if (!t.events.length && t.ended) continue;
     const d = drills.find(x => x.id === t.drillId);
     let detail = plural(t.events.length, 'tap');
+    let counts: Pick<Activity, 'made' | 'attempts' | 'verdict'> = {};
     if (d?.counters === 'completion') {
       const c = completionSummary(t, d.ballsPerRack ?? 9);
       detail = c.racks ? `${c.completed} of ${plural(c.racks, 'rack')} run out${c.shotsAttempted ? `, ${pct(c.makes / c.shotsAttempted)} of shots made` : ''}` : '';
       if (c.learning) detail += `${detail ? ' · ' : ''}${plural(c.learning, 'learning rack')}`;
+      if (c.shotsAttempted) counts = { made: c.makes, attempts: c.shotsAttempted };
     } else if (d?.prog) {
       const sm = summarize(d.prog, t);
       detail = `${d.prog.progressive ? `Level ${t.level ?? 1}: ` : ''}${sm.makes} of ${sm.attempts} made, quality ${sm.qualityPct == null ? '–' : pct(sm.qualityPct)}${sm.complete ? '' : ' (unfinished)'}`;
+      counts = { made: sm.makes, attempts: sm.attempts, ...(d.prog.progressive && sm.complete && !d.prog.noQuality ? { verdict: verdictOf(sm, getThresholds(d.id)) } : {}) };
     } else if (d?.counters === 'diagnostic') {
       let m = 0, a = 0;
       for (const b of Object.values(diagnosticCounts(t))) for (const sd of ['L', 'R'] as const) { m += b[sd].make; a += b[sd].make + b[sd].thick + b[sd].thin; }
       detail = `${m} of ${a} made`;
+      counts = { made: m, attempts: a };
     }
-    out.push({ id: `t-${t.id}`, kind: 'tally', date: t.started, ref: t.drillId, title: t.drillName, detail: `${detail}${t.note ? ` · “${t.note}”` : ''}`, live: !t.ended });
+    out.push({ id: `t-${t.id}`, kind: 'tally', date: t.started, ref: t.drillId, title: t.drillName, detail: `${detail}${t.note ? ` · “${t.note}”` : ''}`, live: !t.ended, ...counts });
   }
   for (const g of games) {
     if (g.kind === 'bowling') {

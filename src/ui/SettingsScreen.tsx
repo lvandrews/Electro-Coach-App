@@ -182,7 +182,7 @@ function Reminders() {
         <label class="small switch-row"><input type="checkbox" checked={p.nudges} onChange={() => set({ nudges: !p.nudges })} />
           <span><b>Nudge me</b> after 3 days without practice, and once more after 7. Then nothing until you log again.</span></label>
         <label class="small switch-row" style={{ marginTop: '6px' }}><input type="checkbox" checked={p.recap} onChange={() => set({ recap: !p.recap })} />
-          <span><b>Next-day recap</b>: the morning after you practice, a note of what you did.</span></label>
+          <span><b>Next-day recap</b>: the morning after you practice, your make rate, one thing that went well and what you're working on.</span></label>
         <div class="note-form" style={{ marginTop: '8px' }}>
           <label class="small">Nudges at<select value={String(p.nudgeHour)} disabled={!p.nudges} onChange={e => set({ nudgeHour: Number((e.target as HTMLSelectElement).value) })}>
             {hours.map(h => <option key={h} value={h}>{label(h)}</option>)}</select></label>

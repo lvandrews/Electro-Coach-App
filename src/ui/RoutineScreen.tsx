@@ -8,7 +8,7 @@ import { bandSentence, coverageNotes, useSpeedProfile } from './SpeedProfile';
 import type { Tab } from './nav';
 import { int, pct } from './format';
 import { isNative } from '../platform';
-import { getWidgetSize, setWidgetSize, type WidgetSize } from '../widget';
+import { getWidgetSize, requestWidgetPin, setWidgetSize, widgetPinInfo, type WidgetSize } from '../widget';
 
 type Props = {
   data: AppData; edits: RoutineEdits | null; onEdits: (e: RoutineEdits | null) => Promise<void>;
@@ -31,6 +31,7 @@ export function RoutineScreen({ data, edits, onEdits, onGo, onGoFocus, focus }: 
     <section>
       <h2>Pre-shot routine</h2>
       <p class="lede">The quick card is for between shots; the notes below hold the detail and your own numbers. The text is yours to edit.</p>
+      <AddWidget compact />
 
       <div class="card routine-quick">
         <div class="row"><h3 style={{ margin: 0 }}>Quick card</h3><span class="spacer" /><button class="btn btn-s" onClick={() => setEditQuick(!editQuick)}>{editQuick ? 'Close' : 'Edit'}</button></div>
@@ -174,13 +175,64 @@ function OneFactor({ title, pts, unit, here }: { title: string; pts: { at: numbe
 }
 
 /** The home-screen widget: how to add it, and its text size (the phone's own size by default). */
+/**
+ * Add to home screen: asks the launcher to place the widget (it shows its own confirmation).
+ * Compact form sits at the top of the page and only appears until a widget is placed.
+ */
+function AddWidget({ compact }: { compact?: boolean }) {
+  const [info, setInfo] = useState<{ supported: boolean; placed: number } | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const check = () => { void widgetPinInfo().then(setInfo); };
+  useEffect(() => {
+    if (!isNative()) return;
+    check();
+    const v = () => { if (document.visibilityState === 'visible') check(); };
+    document.addEventListener('visibilitychange', v);
+    return () => document.removeEventListener('visibilitychange', v);
+  }, []);
+  if (!isNative() || !info) return null;
+  const manual = 'Touch and hold an empty spot on your home screen, choose Widgets, find Electro-Coach and drag the Pre-shot routine widget into place.';
+  const add = async () => {
+    const ok = await requestWidgetPin();
+    setMsg(ok ? 'Your phone will ask to confirm: tap Add (or drag it where you want it).' : `Your home screen doesn't allow adding it from here. ${manual}`);
+    setTimeout(check, 4000);
+  };
+  if (compact) {
+    // Once a widget is placed: a quiet line instead of the prompt, still with a way to add one.
+    if (info.placed > 0) return (
+      <p class="small add-widget-done" style={{ margin: '0 0 10px' }}>
+        <span style={{ color: 'var(--good)' }}>✓ This routine is on your home screen.</span>{' '}
+        <button class="link-btn" onClick={() => document.getElementById('routine-widget')?.scrollIntoView({ block: 'start', behavior: 'smooth' })}>Widget settings</button>
+      </p>
+    );
+    return (
+      <div class="notice row add-widget" style={{ alignItems: 'center' }}>
+        <span class="grow small">Keep this routine one glance away with the home-screen widget.</span>
+        <button class="btn btn-s primary" onClick={info.supported ? add : () => setMsg(manual)}>Add to home screen</button>
+        {msg && <p class="small" style={{ margin: '4px 0 0', flexBasis: '100%' }}>{msg}</p>}
+      </div>
+    );
+  }
+  return (
+    <div style={{ margin: '0 0 10px' }}>
+      {info.placed > 0 && <p class="small" style={{ margin: '0 0 6px', color: 'var(--good)' }}>✓ On your home screen{info.placed > 1 ? ` (${info.placed} widgets)` : ''}.</p>}
+      {info.supported
+        ? <button class="btn primary" onClick={add}>{info.placed > 0 ? 'Add another' : 'Add to home screen'}</button>
+        : <p class="small" style={{ margin: 0 }}>{manual}</p>}
+      {msg && <p class="small" style={{ margin: '6px 0 0' }}>{msg}</p>}
+      {info.supported && !msg && <p class="small muted" style={{ margin: '6px 0 0' }}>Or add it yourself: {manual.charAt(0).toLowerCase() + manual.slice(1)}</p>}
+    </div>
+  );
+}
+
 function WidgetCard({ edits }: { edits: RoutineEdits | null }) {
   const [size, setSize] = useState<WidgetSize>(getWidgetSize());
   return (
-    <div class="card">
+    <div class="card" id="routine-widget">
       <h3 style={{ marginTop: 0 }}>On your home screen</h3>
       {isNative() ? <>
-        <p class="small" style={{ marginTop: 0 }}>Add the <b>Pre-shot routine</b> widget: touch and hold an empty spot on your home screen, choose <b>Widgets</b>, find <b>Electro-Coach</b> and drag it into place. It shows the quick card, then scrolls to the full notes, and updates whenever you edit them here. Tap it to open this page.</p>
+        <p class="small" style={{ marginTop: 0 }}>The <b>Pre-shot routine</b> widget shows the quick card, then scrolls to the full notes, and updates whenever you edit them here. Tap it to open this page.</p>
+        <AddWidget />
         <div class="row" style={{ gap: '8px', alignItems: 'center' }}>
           <span class="small">Widget text</span>
           <div class="seg" role="group" aria-label="Widget text size">

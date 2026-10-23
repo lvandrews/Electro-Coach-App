@@ -2,5 +2,13 @@
   "appId": "app.electrocoach.pool",
   "appName": "Electro-Coach",
   "webDir": "dist",
-  "android": { "backgroundColor": "#eef2f4" }
+  "android": {
+    "backgroundColor": "#eef2f4"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_electrocoach",
+      "iconColor": "#1f8a5b"
+    }
+  }
 }

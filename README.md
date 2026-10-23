@@ -4,7 +4,7 @@
 
 <p align="center">A pool practice coach for Android, iPhone and computer browsers. It runs timed practice
 sessions, logs your drills, keeps your own pre-shot routine one tap away (written your way and
-fully editable), brings a tournament-style shot clock to your matches, scores straight pool,
+fully editable, and on Android a home-screen widget), brings a tournament-style shot clock to your matches, scores straight pool,
 and keeps a practice journal. Add <a href="https://railbird.ai/">Railbird</a> shot exports and
 it turns them into progress tracking, a practice plan and heat maps.
 No account, no AI needed: your data stays on your device.</p>
@@ -23,6 +23,8 @@ No account, no AI needed: your data stays on your device.</p>
   A new version installs over the old one and keeps your data; don't uninstall to update
   (that erases the app's data). The app tells you when a new version is out and offers to
   download it. All versions: [Releases](https://github.com/lvandrews/Electro-Coach-App/releases).
+  The Android app also has a **Pre-shot routine home-screen widget**: open the routine page and
+  tap **Add to home screen**.
 - **iPhone**: open the Electro-Coach web version in **Safari**, tap **Share → Add to Home Screen**,
   and open it from the new icon. It runs full screen and works offline once loaded; your data
   stays on the phone. (The end of a timed practice block sounds only while the app is on
@@ -295,8 +297,9 @@ games, matches and timed practice sessions.
   editable. Under the rules of thumb, **Your numbers** show your own data live: speed sweet
   spots, make chance by distance and cut angle, side-pocket make rates by approach angle, and
   7-ft vs 9-ft tables against the model.
-- **Home-screen widget (Android)**: add **Pre-shot routine** from your home screen's widget list.
-  It shows the quick card, then scrolls to the full notes, updates whenever you edit them, and
+- **Home-screen widget (Android only)**: on the routine page, tap **Add to home screen** and
+  confirm (or add **Pre-shot routine** from your home screen's widget list). Once it's placed,
+  the top of the routine page says so and links to the widget settings. It shows the quick card, then scrolls to the full notes, updates whenever you edit them, and
   opens the routine page when tapped. Its text follows the phone's text size, with Large and
   Extra large options on the routine page.
 - **Resources**: grouped links (training tools, instructional channels, rating, matches) that
@@ -324,7 +327,11 @@ games, matches and timed practice sessions.
   routine, settings). Home reminds you when the last backup is old.
 - **Reminders** (Android, per device): a nudge after 3 days without logging any practice and
   one more after 7, then nothing until you log again; and a recap the morning after a practice
-  day of what you did. Both can be switched off, and their times chosen.
+  day. The recap is short enough to read at a glance: the day's make rate, one thing that went
+  well (a stroke set at the move-up bar counts first, then the best make rate), and what you're
+  working on (the practice plan's top target, or the day's weakest drill). Pull it down to
+  see everything you logged; tap it to open Session history. Both can be switched off, and
+  their times chosen. Notifications carry the app's 9-ball mark.
 - **Appearance** (per device): theme (match the phone, dark, light), chart color,
   strength/weakness colors (including a color-blind-safe set), heat-map scale (green→red or
   color-blind-safe viridis) and the four bottom-bar slots.

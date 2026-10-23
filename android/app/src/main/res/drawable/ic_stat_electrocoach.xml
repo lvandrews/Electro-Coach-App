@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Notification icon: a 9 ball in silhouette. Android draws status-bar and notification
+     icons from their shape only (white on transparent) and tints them; the number disc is
+     cut out and the 9 drawn back inside it. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <!-- ball with the number disc cut out -->
+    <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"
+        android:pathData="M2,12a10,10 0,1 0,20 0a10,10 0,1 0,-20 0Z M7.2,12a4.8,4.8 0,1 0,9.6 0a4.8,4.8 0,1 0,-9.6 0Z" />
+    <!-- the 9: a ring -->
+    <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"
+        android:pathData="M10.15,10.9a1.85,1.85 0,1 0,3.7 0a1.85,1.85 0,1 0,-3.7 0Z M11.05,10.9a0.95,0.95 0,1 0,1.9 0a0.95,0.95 0,1 0,-1.9 0Z" />
+    <!-- and its tail -->
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="0.9" android:strokeLineCap="round"
+        android:pathData="M13.4,11.2C13.3,13 12.6,14.2 11.2,14.6" />
+</vector>

@@ -8,6 +8,9 @@ import { isNative } from './platform';
 // needed: the session screen plays its own tones.
 
 const CHANNEL = 'practice-blocks';
+// The app's mark on the left of every notification: a white 9-ball silhouette (Android
+// draws small icons from their shape only) on snooker green.
+const ICON = { smallIcon: 'ic_stat_electrocoach', iconColor: '#1f8a5b' };
 let prepared: Promise<{ ok: boolean; exact: boolean }> | null = null;
 
 /** Ask for permission once and create a high-importance channel (sound + vibration). */
@@ -37,7 +40,7 @@ export async function scheduleBlockEnd(id: number, at: Date, title: string, body
   if (!ok) return;
   try {
     await LocalNotifications.cancel({ notifications: [{ id }] });
-    await LocalNotifications.schedule({ notifications: [{ id, title, body, channelId: CHANNEL, schedule: { at, allowWhileIdle: true } }] });
+    await LocalNotifications.schedule({ notifications: [{ id, title, body, channelId: CHANNEL, ...ICON, schedule: { at, allowWhileIdle: true } }] });
   } catch { /* the in-app alert still works */ }
 }
 
@@ -64,7 +67,7 @@ const REMINDER_CHANNEL = 'reminders';
 let reminderChannel: Promise<boolean> | null = null;
 
 /** Replace the scheduled reminders with these (all three ids are cleared first). */
-export async function scheduleReminders(ids: number[], notes: { id: number; at: Date; title: string; body: string }[]) {
+export async function scheduleReminders(ids: number[], notes: { id: number; at: Date; title: string; body: string; largeBody?: string; open?: string }[]) {
   if (!isNative()) return;
   try {
     await LocalNotifications.cancel({ notifications: ids.map(id => ({ id })) });
@@ -75,6 +78,22 @@ export async function scheduleReminders(ids: number[], notes: { id: number; at: 
     reminderChannel ??= LocalNotifications.createChannel({ id: REMINDER_CHANNEL, name: 'Practice reminders', description: 'Reminders to log practice and a recap of your last session', importance: 3, vibration: false, visibility: 1 })
       .then(() => true).catch(() => false);
     await reminderChannel;
-    await LocalNotifications.schedule({ notifications: notes.map(n => ({ id: n.id, title: n.title, body: n.body, channelId: REMINDER_CHANNEL, schedule: { at: n.at, allowWhileIdle: true } })) });
+    // largeBody makes the notification expandable (Android's big-text style): short when
+    // collapsed, the whole day when pulled down.
+    await LocalNotifications.schedule({ notifications: notes.map(n => ({
+      id: n.id, title: n.title, body: n.body, ...(n.largeBody ? { largeBody: n.largeBody } : {}), ...ICON,
+      ...(n.open ? { extra: { open: n.open } } : {}), channelId: REMINDER_CHANNEL, schedule: { at: n.at, allowWhileIdle: true },
+    })) });
   } catch { /* reminders are best-effort */ }
+}
+
+/** Calls `onOpen(page)` when a notification that names a page (the recap: 'history') is tapped. */
+export function listenForNotificationOpen(onOpen: (page: string) => void): () => void {
+  if (!isNative()) return () => {};
+  let live = true; let remove: (() => void) | null = null;
+  LocalNotifications.addListener('localNotificationActionPerformed', a => {
+    const page = (a.notification.extra as { open?: unknown } | undefined)?.open;
+    if (live && typeof page === 'string') onOpen(page);
+  }).then(h => { if (live) remove = () => { void h.remove(); }; else void h.remove(); }).catch(() => {});
+  return () => { live = false; remove?.(); };
 }

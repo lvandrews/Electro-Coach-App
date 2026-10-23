@@ -9,6 +9,8 @@ interface WidgetRow { k: 'h' | 'q' | 'p'; t: string }
 interface RoutineWidgetPlugin {
   update(o: { items: WidgetRow[]; scale: number }): Promise<void>;
   takeOpen(): Promise<{ open?: string }>;
+  pinInfo(): Promise<{ supported: boolean; placed: number }>;
+  requestPin(): Promise<{ requested: boolean }>;
   addListener(event: 'open', fn: (o: { open?: string }) => void): Promise<PluginListenerHandle>;
 }
 const Widget = registerPlugin<RoutineWidgetPlugin>('RoutineWidget');
@@ -37,6 +39,17 @@ export async function syncWidget(edits: RoutineEdits | null, size: WidgetSize = 
 export function setWidgetSize(size: WidgetSize, edits: RoutineEdits | null) {
   try { localStorage.setItem(K, size); } catch { /* ignore */ }
   void syncWidget(edits, size);
+}
+
+/** Can the app add the widget itself (Android 8+ launchers that support it), and is one placed already? */
+export async function widgetPinInfo(): Promise<{ supported: boolean; placed: number }> {
+  if (!isNative()) return { supported: false, placed: 0 };
+  try { return await Widget.pinInfo(); } catch { return { supported: false, placed: 0 }; }
+}
+/** Ask the launcher to add the widget; it shows its own confirmation. False if it couldn't. */
+export async function requestWidgetPin(): Promise<boolean> {
+  if (!isNative()) return false;
+  try { return (await Widget.requestPin()).requested; } catch { return false; }
 }
 
 /** Calls `onOpen(page)` when the widget opened the app. Returns a cleanup function. */

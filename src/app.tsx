@@ -41,6 +41,7 @@ import { EMPTY_FARGO, type FargoData } from './engine/fargo';
 import { STARTER_RESOURCES, type ResourceGroup } from './engine/resources';
 import { listenForSharedFiles, type IncomingFile } from './incoming';
 import { listenForWidgetOpen, syncWidget } from './widget';
+import { listenForNotificationOpen } from './notify';
 import { onReminderPrefs, useReminders } from './ui/reminders';
 import { startUsage, track, trackOnce, trackScreen } from './usage';
 import { drillLabel, shotBand } from './engine/usage';
@@ -174,6 +175,8 @@ export function App() {
   // The home-screen widget: keep its text current, and open the routine when it's tapped.
   useEffect(() => { if (loaded) void syncWidget(routine); }, [loaded]);
   useEffect(() => listenForWidgetOpen(page => { if (page === 'routine') { setTab('routine'); setDrawer(false); setTallyOpen(false); window.scrollTo(0, 0); } }), []);
+  // Tapping the morning recap opens Session history, where yesterday is at the top.
+  useEffect(() => listenForNotificationOpen(page => { if (page === 'history') { setTab('history'); setDrawer(false); setTallyOpen(false); window.scrollTo(0, 0); } }), []);
   useEffect(() => {
     if (!loaded || !shared) return;
     const f = shared; setShared(null);
@@ -259,7 +262,7 @@ export function App() {
   // Practice reminders: rescheduled whenever something is logged or the settings change.
   const [remindersVersion, setRemindersVersion] = useState(0);
   useEffect(() => onReminderPrefs(() => setRemindersVersion(v => v + 1)), []);
-  useReminders(loaded, data, tallies, games, drills, remindersVersion);
+  useReminders(loaded, data, tallies, games, drills, remindersVersion, baseline, plan);
   // Freeze the yardstick as soon as there is data, so Home, Plan and Progress all have it.
   useEffect(() => {
     if (!loaded || baseline || shots.size < 50) return;

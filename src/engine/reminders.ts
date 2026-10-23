@@ -14,8 +14,39 @@ export const DEFAULT_REMINDERS: ReminderPrefs = { nudges: true, recap: true, nud
 export const NUDGE_DAYS = [3, 7] as const;
 export const REMINDER_IDS = { nudge3: 7201, nudge7: 7202, recap: 7203 } as const;
 
-export interface PlannedNote { id: number; at: Date; title: string; body: string }
-export interface DayActivity { title: string; detail: string }
+export interface PlannedNote { id: number; at: Date; title: string; body: string; largeBody?: string; open?: string }
+export interface DayActivity {
+  title: string; detail: string;
+  made?: number; attempts?: number;          // shots made / taken, where the activity counts them
+  verdict?: 'good' | 'poor' | 'neither';     // stroke drills: against the move-up / move-down bars
+}
+
+const MIN_SHOTS = 5;   // an activity needs at least this many shots to be called a best or a weak spot
+const rate = (a: DayActivity) => (a.attempts ? (a.made ?? 0) / a.attempts : 0);
+const pctOf = (m: number, n: number) => `${Math.round((100 * m) / n)}%`;
+const shotsText = (a: DayActivity) => (a.attempts! > 20 ? `${pctOf(a.made ?? 0, a.attempts!)} of ${a.attempts}` : `${a.made ?? 0} of ${a.attempts}`);
+
+/**
+ * The morning-after recap, short enough for a collapsed notification: the day's make rate,
+ * one thing that went well, and one thing being worked on (the practice plan's top target
+ * when there is one, otherwise the day's weakest drill). Expanding shows everything.
+ */
+export function recapNote(day: DayActivity[], focus: string | null): { title: string; body: string; largeBody: string } {
+  const counted = day.filter(a => (a.attempts ?? 0) > 0);
+  const made = counted.reduce((s, a) => s + (a.made ?? 0), 0), shots = counted.reduce((s, a) => s + a.attempts!, 0);
+  const title = shots ? `Yesterday: ${pctOf(made, shots)} made, ${shots} shot${shots === 1 ? '' : 's'}` : 'Yesterday at the table';
+  const ranked = counted.filter(a => a.attempts! >= MIN_SHOTS)
+    .sort((a, b) => Number(b.verdict === 'good') - Number(a.verdict === 'good') || rate(b) - rate(a) || b.attempts! - a.attempts!);
+  const best = ranked[0] ?? null;
+  const uncounted = day.find(a => !a.attempts && a.detail);
+  const well = best ? `${best.title}, ${shotsText(best)}` : uncounted ? `${uncounted.title}, ${uncounted.detail}` : null;
+  const weak = ranked.length > 1 ? [...ranked].reverse().find(a => a !== best && (a.verdict === 'poor' || rate(a) < rate(best!))) ?? null : null;
+  const work = focus ?? (weak ? `${weak.title}, ${shotsText(weak)}` : null);
+  const parts = [well && `Went well: ${well}.`, work && `Working on: ${work}.`].filter(Boolean) as string[];
+  const body = parts.length ? parts.join(' ') : `${day.slice(0, 2).map(a => a.title).join(' and ')}${day.length > 2 ? ` and ${day.length - 2} more` : ''}.`;
+  const lines = day.map(a => `• ${a.detail ? `${a.title}: ${a.detail}` : a.title}`);
+  return { title, body, largeBody: `${body}\n\n${lines.join('\n')}` };
+}
 
 /** Local date at a given hour, `days` after the calendar day of `from`. */
 export function dayAt(from: Date, days: number, hour: number): Date {
@@ -27,7 +58,7 @@ export function dayAt(from: Date, days: number, hour: number): Date {
  * The notifications to schedule now. `last` is when you last logged practice (a tally,
  * game, match, timed session or Railbird session); `lastDay` is what you did on that day.
  */
-export function planReminders(prefs: ReminderPrefs, last: Date | null, lastDay: DayActivity[], now = new Date()): PlannedNote[] {
+export function planReminders(prefs: ReminderPrefs, last: Date | null, lastDay: DayActivity[], now = new Date(), focus: string | null = null): PlannedNote[] {
   if (!last) return [];
   const out: PlannedNote[] = [];
   if (prefs.nudges) {
@@ -39,11 +70,7 @@ export function planReminders(prefs: ReminderPrefs, last: Date | null, lastDay: 
   }
   if (prefs.recap && lastDay.length) {
     const r = dayAt(last, 1, prefs.recapHour);
-    if (r > now) {
-      const lines = lastDay.slice(0, 3).map(a => (a.detail ? `${a.title}: ${a.detail}` : a.title));
-      out.push({ id: REMINDER_IDS.recap, at: r, title: 'Yesterday at the table',
-        body: `${lines.join(' · ')}${lastDay.length > 3 ? ` · and ${lastDay.length - 3} more` : ''}.` });
-    }
+    if (r > now) out.push({ id: REMINDER_IDS.recap, at: r, open: 'history', ...recapNote(lastDay, focus) });
   }
   return out;
 }

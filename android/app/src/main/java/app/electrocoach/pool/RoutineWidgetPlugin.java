@@ -1,8 +1,11 @@
 package app.electrocoach.pool;
 
+import android.appwidget.AppWidgetManager;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Build;
 
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -60,6 +63,35 @@ public class RoutineWidgetPlugin extends Plugin {
         e.apply();
         RoutineWidgetProvider.refresh(getContext());
         call.resolve();
+    }
+
+    /** Whether the launcher can add the widget from inside the app, and how many are placed now. */
+    @PluginMethod
+    public void pinInfo(PluginCall call) {
+        Context c = getContext();
+        AppWidgetManager m = AppWidgetManager.getInstance(c);
+        JSObject o = new JSObject();
+        boolean supported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && m != null && m.isRequestPinAppWidgetSupported();
+        int placed = m == null ? 0 : m.getAppWidgetIds(new ComponentName(c, RoutineWidgetProvider.class)).length;
+        o.put("supported", supported);
+        o.put("placed", placed);
+        call.resolve(o);
+    }
+
+    /** Ask the launcher to add the widget; it shows its own confirmation. */
+    @PluginMethod
+    public void requestPin(PluginCall call) {
+        Context c = getContext();
+        JSObject o = new JSObject();
+        boolean requested = false;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            AppWidgetManager m = c.getSystemService(AppWidgetManager.class);
+            if (m != null && m.isRequestPinAppWidgetSupported()) {
+                requested = m.requestPinAppWidget(new ComponentName(c, RoutineWidgetProvider.class), null, null);
+            }
+        }
+        o.put("requested", requested);
+        call.resolve(o);
     }
 
     /** The page the widget asked to open when it launched the app, if any (returned once). */
