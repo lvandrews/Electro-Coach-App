@@ -34,6 +34,21 @@ This is a labor of love and still a work in progress. I hope it helps you too.
   **Update now**, downloads it and opens Android's installer (Android asks once to allow
   installs from Electro-Coach). Updates install over the old version and keep your data; don't
   uninstall to update (that erases the app's data). All versions: [Releases](https://github.com/lvandrews/Electro-Coach-App/releases).
+  <details><summary>If the first download or install gets stuck</summary>
+
+  - **The browser warns the file might be harmful.** Apps from outside the Play Store always
+    get this warning. Choose to download or keep it anyway.
+  - **The download finished but tapping it does nothing.** Open your phone's **Files** app (or
+    **Downloads**), find `electro-coach.apk` and tap it there.
+  - **Android asks to allow installs from this source.** Turn it on for the browser or Files
+    app you're using, go back, and tap **Install**. This is needed once.
+  - **Play Protect says it doesn't recognize the developer.** That's because the app isn't in
+    the Play Store. Choose **More details → Install anyway** (or let it scan the app first).
+  - **"App not installed".** Usually not enough free space, or an old copy signed differently:
+    free some space and try again. Don't uninstall a working copy unless you've backed up
+    (Settings → Back up), because uninstalling erases the app's data.
+
+  </details>
   The Android app also has a **Pre-shot routine home-screen widget**: open the routine page and
   tap **Add to home screen**.
 - **iPhone**: open the Electro-Coach web version in **Safari**, tap **Share → Add to Home Screen**,
