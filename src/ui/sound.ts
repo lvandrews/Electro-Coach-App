@@ -45,6 +45,8 @@ export const sounds = {
   expire: () => { unlockAudio(); tone(880, 0, 0.32, 0.55); tone(659, 0.34, 0.6, 0.55); },
   /** Extension granted. */
   extend: () => { unlockAudio(); tone(659, 0, 0.12, 0.4); tone(880, 0.12, 0.12, 0.4); tone(1175, 0.24, 0.2, 0.4); },
+  /** Button press confirmed: the softest sound of all, well below the warning and countdown tones. */
+  tap: () => { unlockAudio(); tone(988, 0, 0.04, 0.08); },
   /** Clock started for a new shot: a very short, quiet blip. */
   start: () => { unlockAudio(); tone(1319, 0, 0.05, 0.18); },
 };

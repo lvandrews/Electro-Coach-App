@@ -168,10 +168,22 @@ games, matches and timed practice sessions.
 <tr><td align="center" valign="top" width="33%"><img src="docs/screenshots/13-shot-clock.jpg" width="240" alt="Shot clock"><br><sub>Shot clock</sub></td><td align="center" valign="top" width="33%"><img src="docs/screenshots/15-straight-pool.jpg" width="240" alt="Straight pool (14.1)"><br><sub>Straight pool (14.1)</sub></td></tr>
 </table>
 
-- **Shot clock**: tap the clock when the balls stop. Shot time (default 30 s), a longer first
-  shot after the break (60 s), one 30 s extension per player per rack, a chime at 10 s, a beep
-  for each of the last five seconds and a longer two-tone at zero, all synthesized with Web
-  Audio (`src/ui/sound.ts`). Volume control; the screen stays on. Settings per device.
+- **Shot clock**: built to be read and tapped at arm's length, with large controls and each
+  player's side color-coded. Tap the clock when the balls stop to start the shot, and
+  **Shot played** when the cue ball is struck.
+  - **Rule sets**: Matchroom (World Nineball Tour) by default: 30 s a shot, 60 s for the break
+    and the first shot after it, one 30 s extension per player per rack. Also Predator Pro
+    Billiard Series and Custom.
+  - **Push out**: on the first shot after the break. The other player gets 60 s to take it or
+    **Pass it back**, which gives the player who pushed 30 s.
+  - **Two players**: each has their own extension button (tapping yours also makes you the
+    shooter), **Turn over** switches who is at the table, and a time foul passes the table
+    automatically. **Undo** reverses the last tap; **Pause** sits at the top for interruptions.
+  - **New rack** asks who breaks. The clock keeps its place if you leave the page.
+  - A **Usage** section explains the buttons and the chosen rules.
+  - A chime at 10 s, a beep for each of the last five seconds and a longer two-tone at zero, all
+    synthesized with Web Audio (`src/ui/sound.ts`). Volume control; the screen stays on.
+    Settings per device. The rules logic is in `src/engine/shotclock.ts`.
 - **Straight pool (14.1)**: +1 per ball, then miss / safety / foul (−1); break foul (−2) on the
   opening shot; a third foul in a row costs a further 15. Balls on the table and the re-rack are
   tracked; BPI and high run per player; history chart of your BPI. Pick a past opponent or add a
