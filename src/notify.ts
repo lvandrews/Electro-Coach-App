@@ -97,3 +97,19 @@ export function listenForNotificationOpen(onOpen: (page: string) => void): () =>
   }).then(h => { if (live) remove = () => { void h.remove(); }; else void h.remove(); }).catch(() => {});
   return () => { live = false; remove?.(); };
 }
+
+/**
+ * Show a notification now (Android), on the quieter reminders channel. Never asks for
+ * permission: if notifications aren't allowed, nothing is shown.
+ */
+export async function notifyNow(id: number, title: string, body: string, open?: string) {
+  if (!isNative()) return;
+  try {
+    if ((await LocalNotifications.checkPermissions()).display !== 'granted') return;
+    reminderChannel ??= LocalNotifications.createChannel({ id: REMINDER_CHANNEL, name: 'Practice reminders', description: 'Reminders to log practice and a recap of your last session', importance: 3, vibration: false, visibility: 1 })
+      .then(() => true).catch(() => false);
+    await reminderChannel;
+    await LocalNotifications.schedule({ notifications: [{ id, title, body, largeBody: body, ...ICON, channelId: REMINDER_CHANNEL,
+      ...(open ? { extra: { open } } : {}), schedule: { at: new Date(Date.now() + 1000), allowWhileIdle: true } }] });
+  } catch { /* best-effort */ }
+}

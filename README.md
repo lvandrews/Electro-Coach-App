@@ -16,6 +16,16 @@ No account, no AI needed: your data stays on your device.</p>
 <tr><td align="center" valign="top" width="33%"><img src="docs/screenshots/09-progress.jpg" width="240" alt="Progress"><br><sub>Progress</sub></td><td align="center" valign="top" width="33%"><img src="docs/screenshots/11-table.jpg" width="240" alt="Table heat map"><br><sub>Table heat map</sub></td><td align="center" valign="top" width="33%"><img src="docs/screenshots/03-plan.jpg" width="240" alt="Practice plan"><br><sub>Practice plan</sub></td></tr>
 </table>
 
+## Why I built it
+
+I love pool, and I built Electro-Coach to help me get better. I wanted to explore my Railbird data in depth and to build a structured practice plan that keeps me honest, with no shortcuts. And the more I use the app, the more it builds on the valuable data I already get from Railbird.
+
+I added other things I like to have on hand, too: my pre-shot routine and a journal for practice sessions and competition days.
+
+This is a labor of love and still a work in progress. I hope it helps you too.
+
+— Lela
+
 ## Get the app
 
 - **Android**: open the [latest release](https://github.com/lvandrews/Electro-Coach-App/releases/latest) on the phone,
@@ -256,7 +266,14 @@ games, matches and timed practice sessions.
   and the re-rack cases (WPA). After a break foul the scorer asks whether the opponent takes the
   table or calls a re-break; after three fouls in a row the offender breaks a full rack again.
 - **FargoRate**: your rating over time, with journal entries flagged on the chart. Find
-  yourself by name or ID and tap **Update from FargoRate**, or enter ratings by hand. FargoRate
+  yourself by name or ID and tap **Update from FargoRate**, or enter ratings by hand. Once you've
+  linked your FargoRate, the app checks your rating **at most once a day**, when it opens or
+  comes back to the front, and adds it to the chart when it changes (or once a month if it
+  hasn't). Only your FargoRate ID is sent. Turn it off with **Check my rating once a day** on
+  the FargoRate page; a rating you entered by hand is never replaced. When the daily check finds
+  a new rating, an Android notification says so ("You added 4 games to FargoRate and your rating
+  changed by +1 to 523."); tap it to open FargoRate, or switch it off with **Notify me when it
+  changes**. FargoRate
   has no published API; the lookup uses the search endpoint the open-source
   [fargo CLI](https://github.com/rgstephens/fargo-skill) uses, so it may break if FargoRate
   changes it. Manual entry always works.
@@ -343,6 +360,8 @@ games, matches and timed practice sessions.
   works out the country from the connection and doesn't store the address. Nothing you enter is
   ever sent: no shots, scores, notes, routine text, names, venues or FargoRate ID, and there is no
   account, device ID or install ID. The full list is in `src/engine/usage.ts`.
+- **FargoRate** (only if you link your FargoRate): at most one request a day to FargoRate's
+  search, carrying only your FargoRate ID. Switch it off on the FargoRate page.
 - **Updates** (Android): when the app opens (at most twice a day) it asks GitHub for the latest
   release. If there's a newer one it shows what's new and offers **Download**, **Not now** (asks
   again tomorrow) or **Skip this version**. It never downloads anything without asking.

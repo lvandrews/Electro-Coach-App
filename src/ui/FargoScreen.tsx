@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'preact/hooks';
 import { track } from '../usage';
-import { addEntry, changeOver, ESTABLISHED, FARGO_API, FARGO_SITE, latestEntry, parseFargo, type FargoData, type FargoPlayer } from '../engine/fargo';
+import { addEntry, changeOver, ESTABLISHED, FARGO_SITE, latestEntry, type FargoData, type FargoPlayer } from '../engine/fargo';
+import { searchFargo } from '../fargoLookup';
 import { timelineNotes, type Note } from '../engine/progress';
 import type { TallySession } from '../engine/tally';
-import { getJson, openExternal } from '../platform';
+import { isNative, openExternal } from '../platform';
 import { TimeChart, type TMarker } from './TimeChart';
 import { useWidth } from './useWidth';
-import { fmtDate, int, localYmd } from './format';
+import { fmtDate, fmtTime, int, localYmd } from './format';
 
 type Props = { fargo: FargoData; onFargo: (f: FargoData) => Promise<void>; notes: Note[]; tallies: TallySession[] };
 
@@ -14,9 +15,12 @@ const ymdMs = (ymd: string) => Date.parse(`${ymd}T12:00:00`);
 
 async function search(q: string): Promise<FargoPlayer[]> {
   track('fargo_lookup');
-  const enc = encodeURIComponent(q.trim());
-  return parseFargo(await getJson(`${FARGO_API}${enc}`, `/fargo-api/indexsearch?q=${enc}`));
+  return searchFargo(q);
 }
+/** A lookup made by hand counts as today's check, so the daily one doesn't ask again. */
+const checkedNow = (p: FargoPlayer): FargoData['lastCheck'] => ({ at: new Date().toISOString(), ok: p.rating != null,
+  ...(p.rating != null ? { rating: p.rating } : {}), ...(p.robustness != null ? { robustness: p.robustness } : {}) });
+export const AUTO_NOTE = 'Electro-Coach asks FargoRate for your rating at most once a day, when you open the app. Only your FargoRate ID is sent.';
 
 export function FargoScreen({ fargo, onFargo, notes, tallies }: Props) {
   const last = latestEntry(fargo);
@@ -30,7 +34,7 @@ export function FargoScreen({ fargo, onFargo, notes, tallies }: Props) {
     try {
       const p = (await search(fargo.id)).find(x => x.id === fargo.id);
       if (!p || p.rating == null) throw new Error('FargoRate did not return a rating for your ID');
-      await onFargo(addEntry({ ...fargo, name: p.name, location: p.location }, { date: localYmd(new Date()), rating: p.rating, robustness: p.robustness ?? undefined, provisional: p.provisional, source: 'lookup' }));
+      await onFargo(addEntry({ ...fargo, name: p.name, location: p.location, lastCheck: checkedNow(p) }, { date: localYmd(new Date()), rating: p.rating, robustness: p.robustness ?? undefined, provisional: p.provisional, source: 'lookup' }));
       setMsg({ text: last && last.rating === p.rating ? `Still ${p.rating}.` : `Rating ${p.rating} recorded for today.` });
     } catch (e) {
       setMsg({ bad: true, text: `Could not reach FargoRate (${e instanceof Error ? e.message : String(e)}). Add the rating by hand below, or check it on the FargoRate site.` });
@@ -58,10 +62,12 @@ export function FargoScreen({ fargo, onFargo, notes, tallies }: Props) {
           <button class="btn" onClick={() => openExternal(FARGO_SITE)}>Open FargoRate</button>
         </div>
         {msg && <div class={`notice ${msg.bad ? 'bad' : 'good'}`} role="status">{msg.text}</div>}
+        {fargo.id && <AutoCheck fargo={fargo} onFargo={onFargo} />}
         {finding && <Finder current={fargo} onPick={async p => {
-          const next: FargoData = { ...fargo, id: p.id, name: p.name, location: p.location };
+          const next: FargoData = { ...fargo, id: p.id, name: p.name, location: p.location, auto: fargo.auto ?? true, lastCheck: checkedNow(p) };
           await onFargo(p.rating != null ? addEntry(next, { date: localYmd(new Date()), rating: p.rating, robustness: p.robustness ?? undefined, provisional: p.provisional, source: 'lookup' }) : next);
-          setFinding(false); setMsg({ text: `Linked to ${p.name}.${p.rating != null ? ` Rating ${p.rating} recorded for today.` : ''}` });
+          setFinding(false);
+          setMsg({ text: `Linked to ${p.name}.${p.rating != null ? ` Rating ${p.rating} recorded for today.` : ''} From now on, ${next.auto === false ? 'tap Update from FargoRate whenever you like (daily checks are off).' : 'Electro-Coach checks FargoRate for your rating at most once a day, when you open the app. You can turn that off below.'}` });
         }} />}
       </div>
 
@@ -74,6 +80,23 @@ export function FargoScreen({ fargo, onFargo, notes, tallies }: Props) {
         Ratings on fewer than {ESTABLISHED} games are not yet established, so expect them to move.
       </p>
     </section>
+  );
+}
+
+/** The daily check: on/off, and when it last ran. */
+function AutoCheck({ fargo, onFargo }: { fargo: FargoData; onFargo: (f: FargoData) => Promise<void> }) {
+  const on = fargo.auto !== false;
+  const lc = fargo.lastCheck;
+  const when = lc ? (localYmd(new Date(lc.at)) === localYmd(new Date()) ? `today at ${fmtTime(lc.at)}` : fmtDate(lc.at)) : null;
+  return (
+    <div class="fargo-auto" style={{ marginTop: '12px' }}>
+      <label class="small switch-row"><input type="checkbox" checked={on} onChange={() => onFargo({ ...fargo, auto: !on })} />
+        <span><b>Check my rating once a day.</b> {AUTO_NOTE} A new rating goes on the chart when it changes.</span></label>
+      {on && <label class="small switch-row" style={{ marginTop: '6px' }}><input type="checkbox" checked={fargo.notify !== false} onChange={() => onFargo({ ...fargo, notify: fargo.notify === false })} />
+        <span><b>Notify me when it changes</b>{isNative() ? '' : ' (Android app)'}: for example, “You added 4 games to FargoRate and your rating changed by +1 to 523.”</span></label>}
+      {on && when && <p class="small muted" style={{ margin: '4px 0 0' }}>
+        {lc!.ok ? `Last checked ${when}${lc!.rating != null ? `: ${lc!.rating}` : ''}.` : `Last check ${when} couldn't reach FargoRate; it tries again tomorrow.`}</p>}
+    </div>
   );
 }
 

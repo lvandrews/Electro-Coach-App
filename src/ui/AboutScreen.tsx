@@ -68,6 +68,14 @@ export function AboutScreen({ onGo }: { onGo: (t: Tab) => void }) {
           straight pool scoring, a journal, and analysis of Railbird shot exports.</p>
       </div>
 
+      <div class="card about-why">
+        <h3 style={{ marginTop: 0 }}>Why I built it</h3>
+        <p class="small">I love pool, and I built Electro-Coach to help me get better. I wanted to explore my Railbird data in depth and to build a structured practice plan that keeps me honest, with no shortcuts. And the more I use the app, the more it builds on the valuable data I already get from Railbird.</p>
+        <p class="small">I added other things I like to have on hand, too: my pre-shot routine and a journal for practice sessions and competition days.</p>
+        <p class="small">This is a labor of love and still a work in progress. I hope it helps you too.</p>
+        <p class="small" style={{ marginBottom: 0 }}>— Lela</p>
+      </div>
+
       <div class="card">
         <h3>Updates</h3>
         {native ? <>
@@ -101,7 +109,8 @@ export function AboutScreen({ onGo }: { onGo: (t: Tab) => void }) {
         <p class="small" style={{ marginTop: 0 }}>Everything you enter stays on this device; there's no account. Backups are files you keep.</p>
         <p class="small" style={{ margin: '0 0 8px' }}>
           {usageConfigured() ? <>Anonymous usage counts are <b>{usageOn() ? 'on' : 'off'}</b>. They show which screens and features get used, never what you enter. </> : null}
-          {native ? 'The update check asks GitHub for the latest release and sends nothing about you.' : ''}
+          {native ? 'The update check asks GitHub for the latest release and sends nothing about you. ' : ''}
+          If you link your FargoRate, the app asks FargoRate for your rating at most once a day (only your FargoRate ID is sent); you can turn that off on the FargoRate page.
         </p>
         {usageConfigured() && <button class="btn btn-s" onClick={() => onGo('settings')}>Usage counts in Settings</button>}
       </div>

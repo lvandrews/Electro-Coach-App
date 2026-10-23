@@ -38,10 +38,12 @@ import { localYmd } from './ui/format';
 import { FargoScreen } from './ui/FargoScreen';
 import { ResourcesScreen } from './ui/ResourcesScreen';
 import { EMPTY_FARGO, type FargoData } from './engine/fargo';
+import { dailyFargoCheck } from './fargoLookup';
+import { changeNotice } from './engine/fargo';
 import { STARTER_RESOURCES, type ResourceGroup } from './engine/resources';
 import { listenForSharedFiles, type IncomingFile } from './incoming';
 import { listenForWidgetOpen, syncWidget } from './widget';
-import { listenForNotificationOpen } from './notify';
+import { listenForNotificationOpen, notifyNow } from './notify';
 import { onReminderPrefs, useReminders } from './ui/reminders';
 import { startUsage, track, trackOnce, trackScreen } from './usage';
 import { drillLabel, shotBand } from './engine/usage';
@@ -175,8 +177,8 @@ export function App() {
   // The home-screen widget: keep its text current, and open the routine when it's tapped.
   useEffect(() => { if (loaded) void syncWidget(routine); }, [loaded]);
   useEffect(() => listenForWidgetOpen(page => { if (page === 'routine') { setTab('routine'); setDrawer(false); setTallyOpen(false); window.scrollTo(0, 0); } }), []);
-  // Tapping the morning recap opens Session history, where yesterday is at the top.
-  useEffect(() => listenForNotificationOpen(page => { if (page === 'history') { setTab('history'); setDrawer(false); setTallyOpen(false); window.scrollTo(0, 0); } }), []);
+  // Tapping a notification: the morning recap opens Session history; a FargoRate change opens FargoRate.
+  useEffect(() => listenForNotificationOpen(page => { if (page === 'history' || page === 'fargo') { setTab(page); setDrawer(false); setTallyOpen(false); window.scrollTo(0, 0); } }), []);
   useEffect(() => {
     if (!loaded || !shared) return;
     const f = shared; setShared(null);
@@ -255,6 +257,29 @@ export function App() {
   const openDrill = (id: string) => { setDrillOpen(id); setTallyOpen(false); setTab('drills'); window.scrollTo(0, 0); };
   async function saveRoutine(r: RoutineEdits | null) { setRoutine(r); await store.saveRoutine(r); track('routine_edited'); void syncWidget(r); }
   async function saveFargo(f: FargoData) { setFargo(f); await store.saveFargo(f); }
+  // FargoRate: once a player is linked, check their rating at most once a day, when the app
+  // opens or comes back to the front (only the FargoRate ID is sent).
+  const fargoRef = useRef(fargo); fargoRef.current = fargo;
+  const fargoBusy = useRef(false);
+  useEffect(() => {
+    if (!loaded) return;
+    const run = async () => {
+      if (fargoBusy.current || document.visibilityState === 'hidden') return;
+      fargoBusy.current = true;
+      try {
+        const before = fargoRef.current; const next = await dailyFargoCheck(before);
+        if (next && fargoRef.current === before) {
+          await saveFargo(next);
+          const n = next.notify !== false ? changeNotice(before, next) : null;
+          if (n) void notifyNow(7210, n.title, n.body, 'fargo');
+        }
+      } finally { fargoBusy.current = false; }
+    };
+    const t = setTimeout(run, 4000);
+    const onVis = () => { if (document.visibilityState === 'visible') void run(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearTimeout(t); document.removeEventListener('visibilitychange', onVis); };
+  }, [loaded]);
   async function saveResources(r: ResourceGroup[] | null) { setResources(r); await store.saveResources(r); }
   async function addNote(text: string) { await updateNotes([...notes, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, date: localYmd(new Date()), kind: 'other', text }]); }
   const session = (games.find(g => g.kind === 'practice' && !g.ended) as PracticeSession | undefined) ?? null;
