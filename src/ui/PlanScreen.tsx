@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { AppData, Tab } from '../app';
 import type { DrillDef } from '../engine/drills';
-import { fitBaseline, latestStart, suggestedPins, type Baseline } from '../engine/progress';
+import { defaultCutoff, fitBaseline, suggestedPins, type Baseline } from '../engine/progress';
 import { buildPlan, PLAN_PERIODS, type PlanItem, type PlanPeriod, type PlanSettings } from '../engine/plan';
 import type { Game } from '../engine/games';
 import type { TallySession } from '../engine/tally';
@@ -30,7 +30,7 @@ export function PlanScreen(p: Props) {
   const [ready, setReady] = useState(false);
   useEffect(() => { setReady(false); const t = setTimeout(() => setReady(true), 30); return () => clearTimeout(t); }, [data.exclusions]);
   const rows = useMemo(() => (ready ? rowsFor(data) : null), [ready, data.exclusions]);
-  useEffect(() => { if (rows && !baseline && rows.length >= 50) p.onBaseline(fitBaseline(rows, latestStart(rows))); }, [rows, baseline]);
+  useEffect(() => { if (rows && !baseline && rows.length >= 50) p.onBaseline(fitBaseline(rows, defaultCutoff(rows), new Date(), true)); }, [rows, baseline]);
   const plan = useMemo(() => (rows && baseline ? buildPlan(baseline, rows, settings.period) : null), [rows, baseline, settings.period]);
   const pinList = useMemo(() => (rows && baseline ? p.pins ?? suggestedPins(baseline, rows) : []), [rows, baseline, p.pins]);
 

@@ -304,7 +304,9 @@ games, matches and timed practice sessions.
 </table>
 
 - **Progress**: each session against a *frozen* yardstick (your shot model fitted once and
-  kept), so improvement shows instead of being absorbed. Windows for the last 30 and 90 days
+  kept), so improvement shows instead of being absorbed. By default the yardstick covers
+  everything before your last 30 days (or before your latest 100+ shots if the last 30 days
+  hold fewer), so your recent play is what it measures. Windows for the last 30 and 90 days
   and the change between them, a rolling chart with journal entries flagged, tracked segments,
   and drill meters (make rate, Transitions completions and tapped make rate, bowling scores).
 - **Strengths and shot model**: how often you make shots against how often you *should*, given
@@ -469,9 +471,13 @@ break ≥ 18 mph 43, duplicates 17, false positive 0).
 
 - **Frozen yardstick.** The step 2 model is fitted once on the sessions up to a cutoff date and
   its coefficients are stored (settings key `baseline`). New imports never refit it, so
-  improvement shows as a rising O−E instead of being absorbed. The first visit freezes it on
-  everything so far; *Change* moves the cutoff (an earlier date measures what follows out of
-  sample).
+  improvement shows as a rising O−E instead of being absorbed. By default it covers everything
+  before your recent play, so recent play is measured out of sample: "recent" is the last 30
+  days when they hold at least 100 shots, otherwise your most recent whole sessions adding up to
+  100 or more (three sessions with 97 shots become four, even if that's 186). If fewer than 300
+  shots would be left for the yardstick, it takes everything so far. Every session recorded
+  after the cutoff adds to the comparison. *Change* moves the cutoff (an earlier date measures
+  what follows out of sample), and *Use the default* goes back to the rule above.
 - **Windows**: last 30 days, last 90, the 90 before, and the change between them, ending at the
   latest session. O−E is pooled over shots; its 95% range uses a session-clustered standard
   error, var = G/(G−1) · Σ(R_s − n_s·O−E)² / N².

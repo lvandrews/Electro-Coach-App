@@ -5,7 +5,7 @@ import type { DrillDef } from '../engine/drills';
 import type { TallySession } from '../engine/tally';
 import type { Game } from '../engine/games';
 import {
-  drillMeters, drillShotSessions, fitBaseline, latestStart, periodSummary, progressNow, rollingSeries,
+  defaultCutoff, drillMeters, drillShotSessions, fitBaseline, latestStart, recentRule, periodSummary, progressNow, rollingSeries,
   segmentByLabel, segmentMeter, sessionPoints, suggestedPins, timelineNotes, TRACKABLE,
   type Baseline, type DiffStat, type DrillMeter, type Note, type SegmentMeter, type SessionPoint, type WindowStat,
 } from '../engine/progress';
@@ -44,10 +44,10 @@ export function ProgressScreen(p: Props) {
   useEffect(() => { setReady(false); const t = setTimeout(() => setReady(true), 30); return () => clearTimeout(t); }, [data.exclusions]);
   const rows = useMemo(() => (ready ? rowsFor(data) : null), [ready, data.exclusions]);
 
-  // First visit: freeze the yardstick on everything so far.
+  // First visit: freeze the yardstick at the default cutoff (everything before your recent play).
   useEffect(() => {
     if (!rows || baseline || rows.length < 50) return;
-    try { p.onBaseline(fitBaseline(rows, latestStart(rows))); } catch (e) { setErr(e instanceof Error ? e.message : String(e)); }
+    try { p.onBaseline(fitBaseline(rows, defaultCutoff(rows), new Date(), true)); } catch (e) { setErr(e instanceof Error ? e.message : String(e)); }
   }, [rows, baseline]);
 
   const timeline = useMemo(() => timelineNotes(p.notes, p.tallies), [p.notes, p.tallies]);
@@ -86,12 +86,13 @@ function Yardstick({ rows, baseline, onBaseline }: { rows: ModelRow[]; baseline:
   const cutoffFor = (ymd: string) => (ymd >= localYmd(new Date(latest)) ? latest : new Date(`${ymd}T23:59:59`).toISOString());
   const preview = rows.filter(r => r.shot.sessionStart <= cutoffFor(date));
 
-  async function refreeze() {
+  async function refreeze(useDefault = false) {
     setBusy(true); setMsg(null);
-    try { await onBaseline(fitBaseline(rows, cutoffFor(date))); setOpen(false); }
+    try { await onBaseline(useDefault ? fitBaseline(rows, defaultCutoff(rows), new Date(), true) : fitBaseline(rows, cutoffFor(date))); setOpen(false); }
     catch (e) { setMsg(e instanceof Error ? e.message : String(e)); }
     finally { setBusy(false); }
   }
+  const rule = baseline.auto ? recentRule(rows, baseline.cutoff, Date.parse(baseline.createdAt)) : null;
 
   return (
     <div class="card">
@@ -105,6 +106,13 @@ function Yardstick({ rows, baseline, onBaseline }: { rows: ModelRow[]; baseline:
         {' '}{fmtDate(baseline.from, { month: 'short', year: 'numeric' })} to {fmtDate(baseline.to)}. Make rate then: <b class="num">{pct(baseline.makeRate, 1)}</b>.
         {after.length ? <> Since then: <b class="num">{int(after.length)}</b> shots in {plural(afterSessions, 'session')}, measured out of sample.</> : <> No shots since; new imports are measured against it.</>}
       </p>
+      <p class="small muted" style={{ margin: '6px 0 0' }}>
+        {rule === 'days' ? 'The default: everything before your last 30 days, so those 30 days are measured against it.'
+          : rule === 'sessions' ? 'The default: everything before your most recent sessions adding up to 100 or more shots (the last 30 days held fewer), so those sessions are measured against it.'
+          : rule === 'all' ? 'Frozen on everything so far: there wasn’t enough earlier play to set recent sessions apart.'
+          : 'You chose this cutoff.'}
+        {' '}Each new session adds to the comparison, so it gets more telling the more you record.
+      </p>
       {open && (
         <div class="subcard" style={{ marginTop: '10px' }}>
           <label class="small" style={{ display: 'grid', gap: '4px', maxWidth: '260px' }}>
@@ -113,12 +121,13 @@ function Yardstick({ rows, baseline, onBaseline }: { rows: ModelRow[]; baseline:
           </label>
           <p class="small muted" style={{ margin: '8px 0' }}>
             {int(preview.length)} shots would go into the new yardstick. An earlier date measures everything after it out of sample: the end of 2025, say, to see how 2026 compares with 2025.
-            Refreezing replaces the current yardstick, and every chart here is redrawn against the new one.
+            Refreezing replaces the current yardstick, and every chart here is redrawn against the new one. <b>Use the default</b> sets it to everything before your recent play: the last 30 days, or your latest sessions adding up to 100+ shots.
           </p>
           {preview.length < 300 && <div class="notice">Too few shots for a steady yardstick; pick a later date (300 or more shots).</div>}
           {msg && <div class="notice bad">{msg}</div>}
           <div class="row" style={{ gap: '8px' }}>
-            <button class="btn primary" disabled={busy || preview.length < 300} onClick={refreeze}>{busy ? 'Fitting…' : 'Refreeze'}</button>
+            <button class="btn primary" disabled={busy || preview.length < 300} onClick={() => refreeze()}>{busy ? 'Fitting…' : 'Refreeze'}</button>
+            <button class="btn" disabled={busy} onClick={() => refreeze(true)}>Use the default</button>
             <button class="btn" onClick={() => setOpen(false)}>Cancel</button>
           </div>
         </div>

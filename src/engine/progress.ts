@@ -18,6 +18,7 @@ export interface Baseline {
   version: 1;
   cutoff: string;          // ISO; shots from sessions starting on or before this are in the baseline
   createdAt: string;
+  auto?: boolean;          // true: the default cutoff (see defaultCutoff); false: chosen by the player
   beta: number[];          // step 2 model coefficients
   n: number;
   sessions: number;
@@ -30,17 +31,56 @@ const sigmoid = (z: number) => (z >= 0 ? 1 / (1 + Math.exp(-z)) : Math.exp(z) / 
 export const expectedOf = (b: Baseline, x: number[]) => sigmoid(x.reduce((s, v, i) => s + v * b.beta[i], 0));
 
 /** Fit and freeze the yardstick on the rows from sessions starting on or before `cutoff`. */
-export function fitBaseline(rows: ModelRow[], cutoff: string, now = new Date()): Baseline {
+export function fitBaseline(rows: ModelRow[], cutoff: string, now = new Date(), auto = false): Baseline {
   const sub = rows.filter(r => r.shot.sessionStart <= cutoff);
   const m = fitModel(sub);
   return {
-    version: 1, cutoff, createdAt: now.toISOString(), beta: m.beta, n: m.n, sessions: m.sessions,
+    version: 1, cutoff, createdAt: now.toISOString(), auto, beta: m.beta, n: m.n, sessions: m.sessions,
     from: m.dateRange[0], to: m.dateRange[1], makeRate: sub.reduce((s, r) => s + r.y, 0) / sub.length,
   };
 }
 
-/** Latest session start among the rows (the default cutoff: "everything so far"). */
+/** Latest session start among the rows ("everything so far"). */
 export const latestStart = (rows: ModelRow[]) => rows.reduce((m, r) => (r.shot.sessionStart > m ? r.shot.sessionStart : m), '');
+
+export const RECENT_DAYS = 30, RECENT_MIN_SHOTS = 100, BASELINE_MIN_SHOTS = 300;
+
+/**
+ * The default yardstick cutoff: everything before your recent play, so the recent play is
+ * measured out of sample. "Recent" is the last 30 days when they hold at least 100 shots;
+ * otherwise your most recent whole sessions adding up to at least 100 shots (3 sessions with
+ * 97 shots become 4, even if that's 186). If what's left before them is under 300 shots,
+ * the yardstick takes everything so far instead.
+ */
+export function defaultCutoff(rows: ModelRow[], now = Date.now()): string {
+  const by = new Map<string, number>();
+  for (const r of rows) by.set(r.shot.sessionStart, (by.get(r.shot.sessionStart) ?? 0) + 1);
+  const sessions = [...by].map(([start, n]) => ({ start, n })).sort((a, b) => (a.start < b.start ? 1 : -1));   // newest first
+  if (!sessions.length) return '';
+  const sum = (xs: { n: number }[]) => xs.reduce((s, x) => s + x.n, 0);
+  let recent = sessions.filter(s => Date.parse(s.start) > now - RECENT_DAYS * DAY);
+  if (sum(recent) < RECENT_MIN_SHOTS) {
+    recent = [];
+    for (const s of sessions) { recent.push(s); if (sum(recent) >= RECENT_MIN_SHOTS) break; }
+  }
+  const before = sessions.slice(recent.length);
+  if (!before.length || sum(before) < BASELINE_MIN_SHOTS) return sessions[0].start;
+  return before[0].start;
+}
+
+/** Describes the recent play a default yardstick leaves out (for the Yardstick card). */
+export function recentRule(rows: ModelRow[], cutoff: string, now = Date.now()): 'days' | 'sessions' | 'all' {
+  const after = rows.filter(r => r.shot.sessionStart > cutoff);
+  if (!after.length) return 'all';
+  return after.every(r => Date.parse(r.shot.sessionStart) > now - RECENT_DAYS * DAY) ? 'days' : 'sessions';
+}
+
+/**
+ * A yardstick frozen by older versions on "everything so far" (no session between its cutoff
+ * and when it was frozen) and never chosen by hand: moves to the default cutoff.
+ */
+export const isOldDefault = (b: Baseline, rows: ModelRow[]) =>
+  b.auto === undefined && !rows.some(r => r.shot.sessionStart > b.cutoff && Date.parse(r.shot.sessionStart) <= Date.parse(b.createdAt));
 
 // ---------- per-session points ----------
 

@@ -21,7 +21,7 @@ import { PlayScreen, type PlayMode } from './ui/PlayScreen';
 import { BowlingScreen } from './ui/BowlingScreen';
 import type { Game } from './engine/games';
 import { DEFAULT_PLAN, type PlanSettings } from './engine/plan';
-import { fitBaseline, latestStart, type Baseline, type Note } from './engine/progress';
+import { defaultCutoff, fitBaseline, isOldDefault, type Baseline, type Note } from './engine/progress';
 import { rowsFor } from './ui/ProgressScreen';
 import { int, plural } from './ui/format';
 import { HomeScreen } from './ui/HomeScreen';
@@ -289,9 +289,20 @@ export function App() {
   useEffect(() => onReminderPrefs(() => setRemindersVersion(v => v + 1)), []);
   useReminders(loaded, data, tallies, games, drills, remindersVersion, baseline, plan);
   // Freeze the yardstick as soon as there is data, so Home, Plan and Progress all have it.
+  // By default it covers everything before your recent play (the last 30 days, or your latest
+  // sessions adding up to 100+ shots), so that recent play is measured against it. A yardstick
+  // older versions froze on "everything so far" moves to this default once.
   useEffect(() => {
-    if (!loaded || baseline || shots.size < 50) return;
-    const t = setTimeout(() => { try { const rows = rowsFor(data); if (rows.length >= 50) updateBaseline(fitBaseline(rows, latestStart(rows))); } catch { /* Progress shows the error */ } }, 50);
+    if (!loaded || shots.size < 50) return;
+    if (baseline && baseline.auto !== undefined) return;
+    const t = setTimeout(() => {
+      try {
+        const rows = rowsFor(data);
+        if (rows.length < 50) return;
+        if (!baseline || isOldDefault(baseline, rows)) updateBaseline(fitBaseline(rows, defaultCutoff(rows), new Date(), true));
+        else updateBaseline({ ...baseline, auto: false });   // chosen by hand before: keep it, and stop checking
+      } catch { /* Progress shows the error */ }
+    }, 50);
     return () => clearTimeout(t);
   }, [loaded, baseline, exclusions]);
   function openActivity(a: Activity) {
