@@ -49,7 +49,7 @@ import { startUsage, track, trackOnce, trackScreen } from './usage';
 import { drillLabel, shotBand } from './engine/usage';
 import { UsageNotice } from './ui/Usage';
 import { drillLevel } from './ui/progPrefs';
-import { AboutScreen, UpdateBanner } from './ui/AboutScreen';
+import { AboutScreen, UpdatePrompt, closeUpdatePrompt } from './ui/AboutScreen';
 import { FeedbackScreen } from './ui/FeedbackScreen';
 import { bowlingCard } from './engine/games';
 import { App as CapApp } from '@capacitor/app';
@@ -352,6 +352,7 @@ export function App() {
   }, []);
   const backRef = useRef(() => {});
   backRef.current = () => {
+    if (closeUpdatePrompt) { closeUpdatePrompt(); return; }   // the update pop-up closes first
     const a = backAction(drawer, navIdx.current, tab);
     if (a === 'closeDrawer') setDrawer(false);
     else if (a === 'back') history.back();
@@ -402,7 +403,6 @@ export function App() {
 
       <main>
         <UsageNotice />
-        <UpdateBanner />
         {error && <div class="notice bad" role="alert">{error}</div>}
         {status && tab !== 'session' && tab !== 'home' && (
           <button class={`session-banner ${status.due ? 'due' : ''}`} onClick={() => go('session')}>{status.text}</button>
@@ -467,6 +467,7 @@ export function App() {
       </main>
 
       <Rail tab={tab} onGo={go} onMore={() => setDrawer(true)} />
+      <UpdatePrompt />
       <Drawer open={drawer} current={tab} drills={drills} notes={notes} resources={resources ?? STARTER_RESOURCES} onPick={pick} onClose={() => setDrawer(false)} />
     </div>
   );

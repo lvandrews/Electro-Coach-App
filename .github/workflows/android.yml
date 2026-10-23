@@ -82,7 +82,9 @@ jobs:
           path: electro-coach-*.apk
           retention-days: 30
 
-      # One release per build, tagged v0.1.N and marked latest, with the APK named by version.
+      # One release per build, tagged v0.1.N and marked latest. The APK is always named
+      # electro-coach.apk, so .../releases/latest/download/electro-coach.apk is a stable link
+      # to the newest version (used by the README's download link).
       # The release notes carry the commit message under "What's new"; the app shows it in its update prompt.
       - name: Publish the release
         if: github.ref == 'refs/heads/main'
@@ -90,8 +92,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
+          cp "electro-coach-$VERSION_NAME.apk" electro-coach.apk
           {
-            echo "Download electro-coach-$VERSION_NAME.apk on your Android phone and open it. It installs over the previous version and keeps your data; don't uninstall to update."
+            echo "Version $VERSION_NAME. On your Android phone, download electro-coach.apk below and open it. It installs over the previous version and keeps your data; don't uninstall to update. If you already have the app, it offers this update itself."
             if [ -n "$COMMIT_MESSAGE" ]; then
               echo; echo "## What's new"; echo
               printf '%s\n' "$COMMIT_MESSAGE"
@@ -101,10 +104,10 @@ jobs:
           gh release delete latest --cleanup-tag --yes 2>/dev/null || true
           if gh release view "v$VERSION_NAME" > /dev/null 2>&1; then
             # A re-run of the same build: replace its APK.
-            gh release upload "v$VERSION_NAME" "electro-coach-$VERSION_NAME.apk" --clobber
+            gh release upload "v$VERSION_NAME" electro-coach.apk --clobber
             exit 0
           fi
-          gh release create "v$VERSION_NAME" "electro-coach-$VERSION_NAME.apk" \
+          gh release create "v$VERSION_NAME" electro-coach.apk \
             --target "$GITHUB_SHA" --latest \
             --title "Electro-Coach $VERSION_NAME" \
             --notes-file release-notes.md

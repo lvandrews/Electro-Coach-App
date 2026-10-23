@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { openExternal } from '../platform';
 import { isNewer, shouldPrompt, type ReleaseInfo } from '../engine/update';
-import { canCheckForUpdates, fetchLatest, launchCheck, skipVersion, snooze, updateMemory } from '../update';
+import { LATEST_APK_URL, canCheckForUpdates, downloadUpdate, fetchLatest, installUpdate, launchCheck, snooze, updateMemory } from '../update';
 import { platformName, usageConfigured, usageOn } from '../usage';
 import { APP_VERSION, REPO_URL } from '../version';
 import { fmtDate } from './format';
@@ -15,30 +15,125 @@ const PLATFORM_LABEL: Record<string, string> = {
 const versionText = () => (APP_VERSION === 'web' || APP_VERSION === 'dev' ? '' : `Version ${APP_VERSION} · `) + (PLATFORM_LABEL[platformName()] ?? platformName());
 
 
-function startDownload(r: ReleaseInfo) { openExternal(r.apkUrl ?? r.pageUrl); }
+/** Open the newest APK in the browser: the fallback when the in-app download can't be used. */
+function browserDownload(r: ReleaseInfo | null) { openExternal(r?.apkUrl ?? LATEST_APK_URL); }
 
-/** The prompt shown at launch when GitHub has a newer Android release. */
-export function UpdateBanner() {
+/** Lets the back gesture close the update pop-up (app.tsx asks this first). Null when it isn't open. */
+export let closeUpdatePrompt: (() => void) | null = null;
+let openUpdatePrompt: ((r: ReleaseInfo) => void) | null = null;
+/** Open the pop-up for a release found by About → Check for updates. */
+export const showUpdatePrompt = (r: ReleaseInfo) => openUpdatePrompt?.(r);
+
+type Stage = { s: 'ask' } | { s: 'downloading'; frac: number | null; mb: number } | { s: 'ready'; path: string }
+  | { s: 'permission'; path: string } | { s: 'installing'; path: string } | { s: 'error'; msg: string };
+
+/**
+ * The pop-up shown when GitHub has a newer Android release: at launch and whenever the app
+ * comes back to the front (GitHub is asked at most twice a day). Update now downloads the APK
+ * inside the app and opens Android's installer; Later asks again in a day.
+ */
+export function UpdatePrompt() {
   const [rel, setRel] = useState<ReleaseInfo | null>(null);
-  const [shown, setShown] = useState(false);
+  const [stage, setStage] = useState<Stage>({ s: 'ask' });
+  const btn = useRef<HTMLButtonElement>(null);
   useEffect(() => {
-    if (!canCheckForUpdates()) return;
-    const t = setTimeout(async () => {
-      const r = await launchCheck();
-      if (shouldPrompt(r, APP_VERSION, updateMemory(), Date.now())) { setRel(r); setShown(true); }
-    }, 2500);
-    return () => clearTimeout(t);
+    openUpdatePrompt = r => { setRel(r); setStage({ s: 'ask' }); };
+    const demo = import.meta.env.DEV && new URLSearchParams(location.search).get('update-demo');
+    if (demo != null) {
+      setRel({ version: '0.1.99', apkUrl: null, pageUrl: '', published: null, notes: 'Shot clock: Reset button.\nDaily FargoRate check.' });
+      if (demo === 'downloading') setStage({ s: 'downloading', frac: 0.62, mb: 3.1 });
+      if (demo === 'ready') setStage({ s: 'ready', path: '' });
+      if (demo === 'permission') setStage({ s: 'permission', path: '' });
+      return () => { openUpdatePrompt = null; };
+    }
+    if (!canCheckForUpdates()) return () => { openUpdatePrompt = null; };
+    let busy = false;
+    const look = async () => {
+      if (busy || document.visibilityState === 'hidden') return;
+      busy = true;
+      try { const r = await launchCheck(); if (shouldPrompt(r, APP_VERSION, updateMemory(), Date.now())) setRel(cur => cur ?? r); }
+      finally { busy = false; }
+    };
+    const t = setTimeout(look, 2500);
+    const onVis = () => { if (document.visibilityState === 'visible') void look(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearTimeout(t); document.removeEventListener('visibilitychange', onVis); openUpdatePrompt = null; };
   }, []);
-  if (!shown || !rel) return null;
+
+  const close = () => { setRel(null); setStage({ s: 'ask' }); };
+  const later = () => { snooze(); close(); };
+  const start = async () => {
+    if (!rel) return;
+    setStage({ s: 'downloading', frac: 0, mb: 0 });
+    try {
+      const path = await downloadUpdate(rel, (frac, received) => setStage({ s: 'downloading', frac, mb: received / 1048576 }));
+      await install(path);
+    } catch (e) { setStage({ s: 'error', msg: e instanceof Error ? e.message : String(e) }); }
+  };
+  const install = async (path: string) => {
+    setStage({ s: 'installing', path });
+    try { setStage((await installUpdate(path)) === 'permission' ? { s: 'permission', path } : { s: 'ready', path }); }
+    catch (e) { setStage({ s: 'error', msg: e instanceof Error ? e.message : String(e) }); }
+  };
+
+  useEffect(() => {
+    if (!rel) { closeUpdatePrompt = null; return; }
+    // While downloading, back and Escape leave it alone; otherwise they close (Later from the first screen).
+    closeUpdatePrompt = stage.s === 'downloading' || stage.s === 'installing' ? () => {} : stage.s === 'ask' ? later : close;
+    btn.current?.focus();
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') closeUpdatePrompt?.(); };
+    window.addEventListener('keydown', k);
+    return () => { window.removeEventListener('keydown', k); closeUpdatePrompt = null; };
+  }, [rel, stage.s]);
+
+  if (!rel) return null;
+  const pct = stage.s === 'downloading' && stage.frac != null ? Math.round(stage.frac * 100) : null;
   return (
-    <div class="notice update-notice" role="region" aria-label="Update available">
-      <p style={{ margin: '0 0 6px' }}><b>Update available: version {rel.version}.</b> You have {APP_VERSION}.
-        Download it, then open the file to install. It installs over this version and keeps your data.</p>
-      {rel.notes && <details class="small" style={{ margin: '0 0 8px' }}><summary>What's new</summary><div class="release-notes">{rel.notes}</div></details>}
-      <div class="row" style={{ gap: '8px' }}>
-        <button class="btn primary btn-s" onClick={() => { startDownload(rel); setShown(false); }}>Download</button>
-        <button class="btn btn-s" onClick={() => { snooze(); setShown(false); }}>Not now</button>
-        <button class="btn btn-s" onClick={() => { skipVersion(rel.version); setShown(false); }}>Skip this version</button>
+    <div class="modal-wrap" role="dialog" aria-modal="true" aria-labelledby="update-title">
+      <div class="modal-scrim" onClick={() => closeUpdatePrompt?.()} />
+      <div class="modal card update-modal">
+        {stage.s === 'ask' && <>
+          <h3 id="update-title" style={{ marginTop: 0 }}>Update available: version {rel.version}</h3>
+          <p class="small" style={{ marginTop: 0 }}>You have {APP_VERSION}. The update installs over this version and keeps all your data.</p>
+          {rel.notes && <details class="small" open style={{ margin: '0 0 10px' }}><summary>What's new</summary><div class="release-notes">{rel.notes}</div></details>}
+          <div class="row" style={{ gap: '8px' }}>
+            <button ref={btn} class="btn primary" onClick={start}>Update now</button>
+            <button class="btn" onClick={later}>Later</button>
+          </div>
+          <p class="small muted" style={{ margin: '8px 0 0' }}>Later asks again tomorrow. About → Check for updates works any time.</p>
+        </>}
+        {stage.s === 'downloading' && <>
+          <h3 id="update-title" style={{ marginTop: 0 }}>Downloading version {rel.version}…</h3>
+          <div class="update-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct ?? undefined}>
+            <span style={{ width: `${pct ?? 30}%` }} class={pct == null ? 'indeterminate' : ''} /></div>
+          <p class="small muted num" style={{ margin: '6px 0 0' }}>{pct != null ? `${pct}% · ` : ''}{stage.mb.toFixed(1)} MB. Keep the app open; the installer opens when it's done.</p>
+        </>}
+        {stage.s === 'installing' && <h3 id="update-title" style={{ margin: 0 }}>Opening the installer…</h3>}
+        {stage.s === 'ready' && <>
+          <h3 id="update-title" style={{ marginTop: 0 }}>Ready to install version {rel.version}</h3>
+          <p class="small" style={{ marginTop: 0 }}>Android's installer should be open: tap <b>Update</b> (or <b>Install</b>). Electro-Coach closes, updates and keeps your data. If you closed the installer, open it again here.</p>
+          <div class="row" style={{ gap: '8px' }}>
+            <button ref={btn} class="btn primary" onClick={() => install(stage.path)}>Install</button>
+            <button class="btn" onClick={close}>Close</button>
+          </div>
+        </>}
+        {stage.s === 'permission' && <>
+          <h3 id="update-title" style={{ marginTop: 0 }}>One-time step: allow updates</h3>
+          <p class="small" style={{ marginTop: 0 }}>Android opened a setting for Electro-Coach. Turn on <b>Allow from this source</b>, come back, and tap <b>Install</b>. You only need to do this once.</p>
+          <div class="row" style={{ gap: '8px' }}>
+            <button ref={btn} class="btn primary" onClick={() => install(stage.path)}>Install</button>
+            <button class="btn" onClick={close}>Close</button>
+          </div>
+        </>}
+        {stage.s === 'error' && <>
+          <h3 id="update-title" style={{ marginTop: 0 }}>The update didn't download</h3>
+          <p class="small" style={{ marginTop: 0 }}>{stage.msg}. Check your connection and try again, or download it in your browser and open the file when it finishes.</p>
+          <div class="row" style={{ gap: '8px' }}>
+            <button ref={btn} class="btn primary" onClick={start}>Try again</button>
+            <button class="btn" onClick={() => browserDownload(rel)}>Download in the browser</button>
+            <button class="btn" onClick={close}>Close</button>
+          </div>
+        </>}
       </div>
     </div>
   );
@@ -88,9 +183,9 @@ export function AboutScreen({ onGo }: { onGo: (t: Tab) => void }) {
           {check.state === 'current' && <p class="small" style={{ margin: '8px 0 0' }}>You have the latest version{check.rel ? ` (${check.rel.version})` : ''}.</p>}
           {check.state === 'error' && <p class="small warn-text" style={{ margin: '8px 0 0' }}>Couldn't reach GitHub ({check.msg}). Try again when you're online.</p>}
           {check.state === 'newer' && <div class="notice update-notice" style={{ marginTop: '10px' }}>
-            <p style={{ margin: '0 0 6px' }}><b>Version {check.rel.version} is available.</b> Download it, then open the file to install; your data is kept.</p>
+            <p style={{ margin: '0 0 6px' }}><b>Version {check.rel.version} is available.</b> It installs over this version and keeps your data.</p>
             {check.rel.notes && <details class="small" style={{ margin: '0 0 8px' }}><summary>What's new</summary><div class="release-notes">{check.rel.notes}</div></details>}
-            <button class="btn primary btn-s" onClick={() => startDownload(check.rel)}>Download {check.rel.version}</button>
+            <button class="btn primary btn-s" onClick={() => showUpdatePrompt(check.rel)}>Update to {check.rel.version}</button>
           </div>}
         </> : platformName() === 'web-file'
           ? <p class="small muted" style={{ margin: 0 }}>This single-file copy doesn't update itself. The Android app and the web version do.</p>

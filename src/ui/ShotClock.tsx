@@ -143,13 +143,12 @@ export function ShotClock() {
 
   return (
     <div class="clock">
+      {/* Reset sits apart at the top, in red: for the odd moment it's needed, away from everyday taps. */}
       <div class="clock-top">
         <span class="small muted">{setName} rules · rack {s.rack}</span>
-        <span class="row" style={{ gap: '6px', flexWrap: 'nowrap' }}>
-          <button class="btn btn-s clock-reset" onClick={doReset} aria-label="Reset the shot clock to a fresh start">↺ Reset</button>
-          <button class="btn btn-s clock-pause" onClick={doPause} disabled={!running}>{s.phase === 'paused' ? '▶ Resume' : '❚❚ Pause'}</button>
-        </span>
+        <button class="btn btn-s clock-reset" onClick={doReset} aria-label="Reset the shot clock to a fresh start">↺ Reset</button>
       </div>
+      <button class="btn clock-pause" onClick={doPause} disabled={!running}>{s.phase === 'paused' ? '▶ Resume' : '❚❚ Pause'}</button>
 
       <button class={`clock-face p${s.shooter} ${state} ${s.phase === 'running' ? 'running' : ''}`} onClick={face}
         aria-label={s.phase === 'running' ? 'Shot played: stop the clock' : 'Start the shot clock'}>
@@ -273,9 +272,9 @@ function Usage({ rules: r, ruleSet }: { rules: ClockRules; ruleSet: RuleSetId })
         <li><b>Turn over</b> when the other player comes to the table. After a time foul the table passes to the other player automatically.</li>
         <li><b>Extensions:</b> each player has their own button. Tapping yours adds {r.extension} seconds and makes you the shooter, so a missed turn over never blocks it.</li>
         <li><b>Push out</b> appears on the first shot after the break: tap it before you push. The other player then gets {r.pushIncoming} seconds to take it or <b>Pass it back</b>, which gives the player who pushed {r.pushBack} seconds.</li>
-        <li><b>Undo</b> reverses the last tap. <b>Pause</b> (top right) is for interruptions such as cleaning the cue ball or waiting for a referee.</li>
+        <li><b>Undo</b> reverses the last tap. <b>Pause</b> (the wide button above the clock) is for interruptions such as cleaning the cue ball or waiting for a referee.</li>
         <li><b>New rack</b> asks who breaks and resets the extensions. The clock keeps its place if you leave this page; it comes back paused.</li>
-        <li><b>Reset</b> (top) starts fresh: rack 1, Player A to break, no extensions used. Undo brings back where you were. A clock left unused for half an hour also opens fresh.</li>
+        <li><b>Reset</b> (red, top right) starts fresh: rack 1, Player A to break, no extensions used. Undo brings back where you were. A clock left unused for half an hour also opens fresh.</li>
         <li class="kbd-hint">On a laptop: Space start / shot played, P pause, E extension, T turn over, U undo, R new rack.</li>
       </ul>
       <h4 style={{ margin: '10px 0 4px' }}>{ruleSet === 'custom' ? 'Your custom rules' : RULE_SETS[ruleSet].label}</h4>

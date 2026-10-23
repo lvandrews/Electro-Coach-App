@@ -11,6 +11,8 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(IncomingFilePlugin.class);
         // Keeps the home-screen routine widget up to date (see RoutineWidgetPlugin).
         registerPlugin(RoutineWidgetPlugin.class);
+        // Downloads and installs app updates from GitHub (see AppUpdatePlugin).
+        registerPlugin(AppUpdatePlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

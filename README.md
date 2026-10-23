@@ -9,7 +9,7 @@ and keeps a practice journal. Add <a href="https://railbird.ai/">Railbird</a> sh
 it turns them into progress tracking, a practice plan and heat maps.
 No account, no AI needed: your data stays on your device.</p>
 
-<p align="center"><a href="https://github.com/lvandrews/Electro-Coach-App/releases/latest"><b>Download the latest Android app (APK)</b></a> · <a href="#get-the-app">iPhone and computer</a></p>
+<p align="center"><a href="https://github.com/lvandrews/Electro-Coach-App/releases/latest/download/electro-coach.apk"><b>Download the latest Android app (APK)</b></a> · <a href="#get-the-app">iPhone and computer</a></p>
 
 <table>
 <tr><td align="center" valign="top" width="33%"><img src="docs/screenshots/01-home.jpg" width="240" alt="Home"><br><sub>Home</sub></td><td align="center" valign="top" width="33%"><img src="docs/screenshots/13-shot-clock.jpg" width="240" alt="Shot clock"><br><sub>Shot clock</sub></td><td align="center" valign="top" width="33%"><img src="docs/screenshots/17-routine.jpg" width="240" alt="Your pre-shot routine"><br><sub>Your pre-shot routine</sub></td></tr>
@@ -28,11 +28,12 @@ This is a labor of love and still a work in progress. I hope it helps you too.
 
 ## Get the app
 
-- **Android**: open the [latest release](https://github.com/lvandrews/Electro-Coach-App/releases/latest) on the phone,
-  download `electro-coach-<version>.apk` and open it. Android asks once to allow installs from your browser or file app.
-  A new version installs over the old one and keeps your data; don't uninstall to update
-  (that erases the app's data). The app tells you when a new version is out and offers to
-  download it. All versions: [Releases](https://github.com/lvandrews/Electro-Coach-App/releases).
+- **Android**: on the phone, tap **[Download the latest Android app](https://github.com/lvandrews/Electro-Coach-App/releases/latest/download/electro-coach.apk)**. It downloads
+  `electro-coach.apk`; open it and tap **Install**. Android asks once to allow installs from your
+  browser or file app. After that, the app updates itself: when a new version is out it offers
+  **Update now**, downloads it and opens Android's installer (Android asks once to allow
+  installs from Electro-Coach). Updates install over the old version and keep your data; don't
+  uninstall to update (that erases the app's data). All versions: [Releases](https://github.com/lvandrews/Electro-Coach-App/releases).
   The Android app also has a **Pre-shot routine home-screen widget**: open the routine page and
   tap **Add to home screen**.
 - **iPhone**: open the Electro-Coach web version in **Safari**, tap **Share → Add to Home Screen**,
@@ -247,7 +248,9 @@ games, matches and timed practice sessions.
     **Pass it back**, which gives the player who pushed 30 s.
   - **Two players**: each has their own extension button (tapping yours also makes you the
     shooter), **Turn over** switches who is at the table, and a time foul passes the table
-    automatically. **Undo** reverses the last tap; **Pause** sits at the top for interruptions.
+    automatically. **Undo** reverses the last tap; **Pause** is the wide button above the clock.
+  - **Reset** (red, top right, set apart so it isn't hit by accident) starts fresh, and Undo
+    brings back where you were. A clock left unused for half an hour also opens fresh.
   - **New rack** asks who breaks. The clock keeps its place if you leave the page.
   - A **Usage** section explains the buttons and the chosen rules.
   - A chime at 10 s, a beep for each of the last five seconds and a longer two-tone at zero, all
@@ -362,9 +365,12 @@ games, matches and timed practice sessions.
   account, device ID or install ID. The full list is in `src/engine/usage.ts`.
 - **FargoRate** (only if you link your FargoRate): at most one request a day to FargoRate's
   search, carrying only your FargoRate ID. Switch it off on the FargoRate page.
-- **Updates** (Android): when the app opens (at most twice a day) it asks GitHub for the latest
-  release. If there's a newer one it shows what's new and offers **Download**, **Not now** (asks
-  again tomorrow) or **Skip this version**. It never downloads anything without asking.
+- **Updates** (Android): when the app opens or comes back to the front, it asks GitHub for the
+  latest release (at most twice a day). If there's a newer one, a pop-up shows what's new with
+  **Update now** (downloads the APK inside the app with a progress bar, then opens Android's
+  installer; the first time, Android asks you to allow installs from Electro-Coach) or **Later**
+  (asks again tomorrow). It never downloads anything without
+  asking; **About → Check for updates** works any time.
 - **About**: the version you have, a Check for updates button, how Railbird fits, a privacy
   summary and the copyright.
 - **Feedback and drill requests** (top of the drawer; also on Home, the Drills page and About):

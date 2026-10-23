@@ -498,7 +498,10 @@ details.railbird-role:not(.card) { margin-top: 10px; padding-top: 8px; border-to
 /* ---------- Play: shot clock (large controls, read at arm's length) ---------- */
 .clock { max-width: 640px; margin: 0 auto; display: grid; gap: 10px; --pa: #4f8ef7; --pb: #f59e0b; }
 .clock-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.clock-pause { min-height: 40px; font-weight: 700; }
+.clock-pause { min-height: 48px; font-weight: 700; width: 100%; }
+.clock-top { margin-bottom: 8px; }
+.btn.clock-reset { color: var(--bad); border-color: var(--bad); font-weight: 700; }
+.btn.clock-reset:hover, .btn.clock-reset:active { background: color-mix(in srgb, var(--bad) 12%, transparent); }
 .clock-face {
   width: 100%; border: 0; cursor: pointer; border-radius: 18px; padding: 14px 16px 16px;
   background: #0d1418; color: #eef3f6; display: grid; justify-items: center; gap: 4px;
@@ -687,6 +690,17 @@ details.railbird-role:not(.card) { margin-top: 10px; padding-top: 8px; border-to
 .notice.learn-note { border-color: var(--accent); }
 .notice.usage-notice { border-color: var(--accent); }
 .notice.update-notice { border-color: var(--good); }
+.modal-wrap { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.modal-scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.55); }
+.modal { position: relative; width: min(100%, 440px); max-height: 100%; overflow-y: auto; margin: 0; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35); }
+.update-modal { border-top: 4px solid var(--good); }
+.update-modal .btn { min-height: 48px; }
+.update-bar { height: 12px; border-radius: 6px; background: var(--grid); overflow: hidden; }
+.update-bar span { display: block; height: 100%; background: var(--good); transition: width 200ms; }
+.update-bar span.indeterminate { animation: update-slide 1.2s ease-in-out infinite; }
+@keyframes update-slide { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+@media (prefers-reduced-motion: reduce) { .update-bar span { transition: none; } .update-bar span.indeterminate { animation: none; } }
 .release-notes { white-space: pre-wrap; margin-top: 6px; max-height: 40vh; overflow: auto; color: var(--ink-2); }
 
 /* Speed profile strip */
