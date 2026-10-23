@@ -7,3 +7,6 @@ android/build/
 android/.gradle/
 android/local.properties
 android/keystore/
+
+# Obsidian vault settings (if this folder is opened in Obsidian)
+.obsidian/
