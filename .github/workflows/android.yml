@@ -76,10 +76,12 @@ jobs:
       - name: Rename
         run: cp android/app/build/outputs/apk/debug/app-debug.apk "electro-coach-$VERSION_NAME.apk"
 
-      - uses: actions/upload-artifact@v6
+      # The build's own download on the Actions page: the APK itself, not a zip
+      # (archive: false uploads a single file as is; its file name becomes the artifact name).
+      - uses: actions/upload-artifact@v7
         with:
-          name: electro-coach-apk
-          path: electro-coach-*.apk
+          path: electro-coach-${{ env.VERSION_NAME }}.apk
+          archive: false
           retention-days: 30
 
       # One release per build, tagged v0.1.N and marked latest. The APK is always named
