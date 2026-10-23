@@ -41,6 +41,23 @@
 
         </activity>
 
+        <!-- Home-screen widget: the pre-shot routine. -->
+        <receiver
+            android:name=".RoutineWidgetProvider"
+            android:label="@string/widget_title"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/routine_widget_info" />
+        </receiver>
+        <service
+            android:name=".RoutineWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

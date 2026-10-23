@@ -4,4 +4,7 @@
     <string name="title_activity_main">Electro-Coach</string>
     <string name="package_name">app.electrocoach.pool</string>
     <string name="custom_url_scheme">app.electrocoach.pool</string>
+    <string name="widget_title">Pre-shot routine</string>
+    <string name="widget_empty">Open Electro-Coach once to load your routine.</string>
+    <string name="widget_description">Your pre-shot routine: the quick card, then the full notes.</string>
 </resources>

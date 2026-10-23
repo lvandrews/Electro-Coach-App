@@ -114,3 +114,15 @@ describe('basic and thin-cut drills', () => {
     expect(s.misses.thick).toBe(1); expect(s.misses.thin).toBe(1); expect(s.qualityPct).toBeNull(); expect(requiredMakes(sp)).toBe(10);
   });
 });
+
+import { widgetRows } from '../src/widget';
+describe('routine widget rows', () => {
+  it('starts with the quick card, then the notes', () => {
+    const rows = widgetRows(null);
+    expect(rows[0]).toEqual({ k: 'h', t: 'Quick card' });
+    expect(rows[1].k).toBe('q'); expect(rows[1].t.startsWith('1. ')).toBe(true);
+    expect(rows.some(r => r.k === 'p' && r.t.startsWith('• '))).toBe(true);
+    const edited = widgetRows({ quick: [{ title: 'Breathe', cue: 'one slow breath' }] });
+    expect(edited[1]).toEqual({ k: 'q', t: '1. Breathe: one slow breath' });
+  });
+});

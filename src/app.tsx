@@ -40,6 +40,7 @@ import { ResourcesScreen } from './ui/ResourcesScreen';
 import { EMPTY_FARGO, type FargoData } from './engine/fargo';
 import { STARTER_RESOURCES, type ResourceGroup } from './engine/resources';
 import { listenForSharedFiles, type IncomingFile } from './incoming';
+import { listenForWidgetOpen, syncWidget } from './widget';
 import { onReminderPrefs, useReminders } from './ui/reminders';
 import { startUsage, track, trackOnce, trackScreen } from './usage';
 import { drillLabel, shotBand } from './engine/usage';
@@ -166,6 +167,9 @@ export function App() {
   const importRef = useRef(importFiles); importRef.current = importFiles;
   const [shared, setShared] = useState<IncomingFile | null>(null);
   useEffect(() => listenForSharedFiles(f => setShared(f)), []);
+  // The home-screen widget: keep its text current, and open the routine when it's tapped.
+  useEffect(() => { if (loaded) void syncWidget(routine); }, [loaded]);
+  useEffect(() => listenForWidgetOpen(page => { if (page === 'routine') { setTab('routine'); setDrawer(false); setTallyOpen(false); window.scrollTo(0, 0); } }), []);
   useEffect(() => {
     if (!loaded || !shared) return;
     const f = shared; setShared(null);
@@ -242,7 +246,7 @@ export function App() {
   const pickPlay = (m: PlayMode) => { setPlayMode(m); try { localStorage.setItem('ec-play', m); } catch { /* ignore */ } };
   const openScorer = (m: PlayMode) => { pickPlay(m); setTab('play'); window.scrollTo(0, 0); };
   const openDrill = (id: string) => { setDrillOpen(id); setTallyOpen(false); setTab('drills'); window.scrollTo(0, 0); };
-  async function saveRoutine(r: RoutineEdits | null) { setRoutine(r); await store.saveRoutine(r); track('routine_edited'); }
+  async function saveRoutine(r: RoutineEdits | null) { setRoutine(r); await store.saveRoutine(r); track('routine_edited'); void syncWidget(r); }
   async function saveFargo(f: FargoData) { setFargo(f); await store.saveFargo(f); }
   async function saveResources(r: ResourceGroup[] | null) { setResources(r); await store.saveResources(r); }
   async function addNote(text: string) { await updateNotes([...notes, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, date: localYmd(new Date()), kind: 'other', text }]); }

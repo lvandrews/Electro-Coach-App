@@ -9,6 +9,8 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         // Receives Railbird CSV exports shared to the app (see IncomingFilePlugin).
         registerPlugin(IncomingFilePlugin.class);
+        // Keeps the home-screen routine widget up to date (see RoutineWidgetPlugin).
+        registerPlugin(RoutineWidgetPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

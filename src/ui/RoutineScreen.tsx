@@ -7,6 +7,8 @@ import { factsFor } from './fitCache';
 import { bandSentence, coverageNotes, useSpeedProfile } from './SpeedProfile';
 import type { Tab } from './nav';
 import { int, pct } from './format';
+import { isNative } from '../platform';
+import { getWidgetSize, setWidgetSize, type WidgetSize } from '../widget';
 
 type Props = {
   data: AppData; edits: RoutineEdits | null; onEdits: (e: RoutineEdits | null) => Promise<void>;
@@ -53,6 +55,8 @@ export function RoutineScreen({ data, edits, onEdits, onGo, onGoFocus, focus }: 
           </>}
         </details>
       ))}
+
+      <WidgetCard edits={edits} />
 
       {edits && <p class="small muted">You have edited this reference. <button class="btn btn-s" onClick={() => onEdits(null)}>Restore the original draft</button></p>}
     </section>
@@ -166,5 +170,25 @@ function OneFactor({ title, pts, unit, here }: { title: string; pts: { at: numbe
         <tr>{shown.map(q => <td key={q.at} class={`num ${q.typical ? 'here' : ''}`}>{pct(q.p)}</td>)}</tr>
       </tbody></table>
     </>
+  );
+}
+
+/** The home-screen widget: how to add it, and its text size (the phone's own size by default). */
+function WidgetCard({ edits }: { edits: RoutineEdits | null }) {
+  const [size, setSize] = useState<WidgetSize>(getWidgetSize());
+  return (
+    <div class="card">
+      <h3 style={{ marginTop: 0 }}>On your home screen</h3>
+      {isNative() ? <>
+        <p class="small" style={{ marginTop: 0 }}>Add the <b>Pre-shot routine</b> widget: touch and hold an empty spot on your home screen, choose <b>Widgets</b>, find <b>Electro-Coach</b> and drag it into place. It shows the quick card, then scrolls to the full notes, and updates whenever you edit them here. Tap it to open this page.</p>
+        <div class="row" style={{ gap: '8px', alignItems: 'center' }}>
+          <span class="small">Widget text</span>
+          <div class="seg" role="group" aria-label="Widget text size">
+            {(['normal', 'large', 'xlarge'] as WidgetSize[]).map(k => <button key={k} aria-pressed={size === k} onClick={() => { setSize(k); setWidgetSize(k, edits); }}>{k === 'normal' ? 'Normal' : k === 'large' ? 'Large' : 'Extra large'}</button>)}
+          </div>
+        </div>
+        <p class="small muted" style={{ margin: '6px 0 0' }}>Normal follows your phone's text size setting; Large and Extra large go bigger still.</p>
+      </> : <p class="small muted" style={{ margin: 0 }}>The Android app has a home-screen widget with this routine. iPhone home-screen web apps can't have widgets.</p>}
+    </div>
   );
 }

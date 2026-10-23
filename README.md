@@ -271,6 +271,10 @@ games, matches and timed practice sessions.
   editable. Under the rules of thumb, **Your numbers** show your own data live: speed sweet
   spots, make chance by distance and cut angle, side-pocket make rates by approach angle, and
   7-ft vs 9-ft tables against the model.
+- **Home-screen widget (Android)**: add **Pre-shot routine** from your home screen's widget list.
+  It shows the quick card, then scrolls to the full notes, updates whenever you edit them, and
+  opens the routine page when tapped. Its text follows the phone's text size, with Large and
+  Extra large options on the routine page.
 - **Resources**: grouped links (training tools, instructional channels, rating, matches) that
   open in your browser. Add, edit, reorder or remove them; they're searchable from the drawer
   and included in backups.
