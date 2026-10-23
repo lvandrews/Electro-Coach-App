@@ -3,10 +3,13 @@ import type { ComponentChildren } from 'preact';
 import type { DiagKey, DrillDef, Side } from '../engine/drills';
 import { completionSummary, diagnosticCounts, type TallyEvent, type TallySession } from '../engine/tally';
 import { int } from './format';
+import { describeEvent } from '../engine/progressive';
+import { ProgressiveTally } from './ProgressiveTally';
 
 interface Props {
   drill: DrillDef;
   session: TallySession;
+  tallies?: TallySession[];       // all tallies: progressive drills work out the level from them
   onChange: (s: TallySession) => void;
   onFinish: (s: TallySession) => void;
   onDiscard: (id: string) => void;
@@ -36,7 +39,7 @@ function useClock(start: string) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-export function TallyScreen({ drill, session, onChange, onFinish, onDiscard, onMinimize, header }: Props) {
+export function TallyScreen({ drill, session, tallies = [], onChange, onFinish, onDiscard, onMinimize, header }: Props) {
   useWakeLock();
   const clock = useClock(session.started);
   const [ending, setEnding] = useState(false);
@@ -71,7 +74,7 @@ export function TallyScreen({ drill, session, onChange, onFinish, onDiscard, onM
     window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h);
   });
   const describe = (e: TallyEvent) =>
-    e.key === 'complete' ? 'ran out' : e.key === 'missed' ? `missed the ${e.ball}` : e.key === 'outOfLine' ? `out of line on the ${e.ball}` : e.key === 'ended' ? `run ended at ${e.ball}`
+    drill.prog ? describeEvent(drill.prog, e) : e.key === 'complete' ? 'ran out' : e.key === 'missed' ? `missed the ${e.ball}` : e.key === 'outOfLine' ? `out of line on the ${e.ball}` : e.key === 'ended' ? `run ended at ${e.ball}`
       : `${e.side ? SIDE_LABEL[e.side].toLowerCase() + ' ' : ''}${KEY_LABEL[e.key as DiagKey].toLowerCase()}`;
 
   return (
@@ -107,7 +110,11 @@ export function TallyScreen({ drill, session, onChange, onFinish, onDiscard, onM
               : <button class="btn danger" onClick={() => setArmDiscard(true)}>Discard this tally…</button>)}
           </div>
         </div>
-      ) : drill.counters === 'completion'
+      ) : drill.counters === 'progressive' && drill.prog
+        ? <ProgressiveTally drill={drill} session={session} tallies={tallies} push={push}
+            onLevel={lv => commit({ ...latest.current, level: lv, updated: new Date().toISOString() })}
+            onFinish={() => onFinish({ ...latest.current, ended: new Date().toISOString(), updated: new Date().toISOString() })} />
+      : drill.counters === 'completion'
         ? <Completion drill={drill} session={session} push={push}
             onLearning={on => commit({ ...latest.current, learning: on, updated: new Date().toISOString() })} />
         : <Diagnostic drill={drill} session={session} push={push} />}

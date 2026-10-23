@@ -1,3 +1,4 @@
+import { summarize } from './progressive';
 import type { Shot } from './schema';
 import { fitModel, type ModelRow } from './model';
 import { SEGMENTS, type SegmentDef } from './ledger';
@@ -261,6 +262,19 @@ export function drillMeters(drills: DrillDef[], shotSessions: DrillShotSession[]
         const worst = [...all.ends].sort((a, b) => (b.missed + b.outOfLine + b.unknown) - (a.missed + a.outOfLine + a.unknown))[0];
         if (worst && worst.missed + worst.outOfLine + worst.unknown >= 2) extra.push(`Most racks end on the ${worst.ball} ball (${worst.missed} missed, ${worst.outOfLine} out of line).`);
       }
+    } else if (d.prog && ts.length) {
+      const spec = d.prog;
+      const sets = ts.filter(t => t.ended).map(t => ({ t, s: summarize(spec, t) })).filter(x => x.s.complete);
+      kind = 'diagnostic'; unit = 'quality (tapped)'; target = 3;
+      points = sets.map(({ t, s }) => ({ date: t.started, n: s.makes, value: s.qualityPct ?? 0,
+        detail: `${spec.progressive ? `Level ${t.level ?? 1}: ` : ''}made ${Math.round(100 * (s.makePct ?? 0))}%, quality ${Math.round(100 * (s.qualityPct ?? 0))}%`, source: 'tally' as const }));
+      const l = sets.reduce((a, x) => a + x.s.misses.L, 0), r = sets.reduce((a, x) => a + x.s.misses.R, 0);
+      const th = sets.reduce((a, x) => a + x.s.misses.thick, 0), tn = sets.reduce((a, x) => a + x.s.misses.thin, 0);
+      const dl = sets.reduce((a, x) => a + x.s.drift.L, 0), dr = sets.reduce((a, x) => a + x.s.drift.R, 0);
+      if (sets.length) extra.push(`${sets.length} complete ${sets.length === 1 ? 'set' : 'sets'}.${spec.progressive ? ' Levels mix here; the drill page shows each level on its own.' : ''}`);
+      if (l + r >= 4) extra.push(`Misses: ${l} left, ${r} right${Math.abs(l - r) >= Math.max(3, 0.3 * (l + r)) ? ` (leaning ${l > r ? 'left' : 'right'})` : ''}.`);
+      if (th + tn >= 4) extra.push(`Misses: ${th} thick, ${tn} thin.`);
+      if (dl + dr >= 4) extra.push(`Stop-shot drift: ${dl} left, ${dr} right.`);
     } else if (d.counters === 'diagnostic' && ts.length) {
       kind = 'diagnostic'; unit = 'make rate (tapped)'; target = 20;
       let thick = 0, thin = 0;

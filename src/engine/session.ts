@@ -1,6 +1,7 @@
 import type { Block } from './plan';
 import type { DrillDef } from './drills';
 import { completionSummary, diagnosticCounts, type TallySession } from './tally';
+import { requiredMakes } from './progressive';
 import { bowlingCard, type BowlingGame, type Game } from './games';
 
 // Timed practice sessions (the practice plan, run block by block on one phone).
@@ -11,7 +12,7 @@ import { bowlingCard, type BowlingGame, type Game } from './games';
 
 export type BlockMode = 'tap' | 'record' | 'free';
 export type EndRule = 'time' | 'count' | 'either';
-export type CountUnit = 'racks' | 'shots' | 'games';
+export type CountUnit = 'racks' | 'shots' | 'games' | 'makes';
 
 export interface RunBlock {
   title: string;
@@ -55,6 +56,7 @@ export function defaultsFor(d: DrillDef | undefined): Pick<RunBlock, 'mode' | 'e
   if (d.scorer === 'bowling') return { mode: 'tap', end: 'either', count: 1, unit: 'games' };
   if (d.counters === 'completion') return { mode: 'tap', end: 'either', count: (d.ballsPerRack ?? 9) > 9 ? 3 : 5, unit: 'racks' };
   if (d.counters === 'diagnostic') return { mode: 'tap', end: 'either', count: 20, unit: 'shots' };
+  if (d.counters === 'progressive' && d.prog) return { mode: 'tap', end: 'either', count: requiredMakes(d.prog), unit: 'makes' };
   return { mode: 'record', end: 'time' };
 }
 
@@ -77,7 +79,8 @@ export function buildRun(blocks: Block[], drills: DrillDef[], minutes: number): 
   });
   // The warm-up is for finding the stroke, not for taps: film it if the drill has a Railbird tag, otherwise no recording.
   const w = run[0], wd = w?.drillId ? byId.get(w.drillId) : undefined;
-  if (w && blocks[0]?.title.startsWith('Warm up')) Object.assign(w, { mode: wd && (wd.tags.length || wd.railbirdBuiltIn) ? 'record' : 'free', end: 'time', count: undefined, unit: undefined });
+  // Tap stroke drills (the X-drill and its family) stay tapped: they are the warm-up.
+  if (w && blocks[0]?.title.startsWith('Warm up') && wd?.counters !== 'progressive') Object.assign(w, { mode: wd && (wd.tags.length || wd.railbirdBuiltIn) ? 'record' : 'free', end: 'time', count: undefined, unit: undefined });
   if (run.length > 3) {
     const first = run[0], last = run[run.length - 1];
     const middle = run.slice(1, -1).sort((a, b) => Number(b.mode === 'record') - Number(a.mode === 'record'));
@@ -112,6 +115,7 @@ export function countSoFar(b: RunBlock, tallies: TallySession[], games: Game[], 
   const t = tallies.find(x => x.id === b.tallyId);
   if (!t) return 0;
   if (b.unit === 'racks') return completionSummary(t, drill?.ballsPerRack ?? 9, 'include').racks;   // learning racks fill the block too
+  if (b.unit === 'makes') return t.events.filter(e => e.key === 'make').length;
   let n = 0;
   for (const blk of Object.values(diagnosticCounts(t))) for (const s of ['L', 'R'] as const) n += blk[s].make + blk[s].thick + blk[s].thin;
   return n;

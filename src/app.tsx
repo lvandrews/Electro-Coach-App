@@ -44,6 +44,7 @@ import { onReminderPrefs, useReminders } from './ui/reminders';
 import { startUsage, track, trackOnce, trackScreen } from './usage';
 import { drillLabel, shotBand } from './engine/usage';
 import { UsageNotice } from './ui/Usage';
+import { drillLevel } from './ui/progPrefs';
 import { AboutScreen, UpdateBanner } from './ui/AboutScreen';
 import { bowlingCard } from './engine/games';
 
@@ -181,7 +182,8 @@ export function App() {
     const open = tallies.find(x => x.id === activeTallyId && !x.ended);
     if (open) { if (open.events.length) await finishTally({ ...open, ended: new Date().toISOString(), updated: new Date().toISOString() }); else await discardTally(open.id); }
     const now = new Date().toISOString();
-    const t: TallySession = { id: newTallyId(), drillId: d.id, drillName: d.name, device, started: now, updated: now, events: [] };
+    const t: TallySession = { id: newTallyId(), drillId: d.id, drillName: d.name, device, started: now, updated: now, events: [],
+      ...(d.prog?.progressive ? { level: drillLevel(d, tallies).level } : {}) };
     await store.saveTally(t);
     setTallies(ts => [t, ...ts]); setActiveTallyId(t.id); setDrillOpen(d.id); setTallyOpen(true); setTab('drills');
     track('tally_started', { drill: drillLabel(d.id, BUILTIN_IDS) });
@@ -338,7 +340,7 @@ export function App() {
           </div>
         )}
         {!loaded ? null
-          : showTally ? <TallyScreen drill={activeDrill!} session={activeTally!} onChange={changeTally} onFinish={finishTally} onDiscard={discardTally} onMinimize={() => setTallyOpen(false)}
+          : showTally ? <TallyScreen drill={activeDrill!} session={activeTally!} tallies={tallies} onChange={changeTally} onFinish={finishTally} onDiscard={discardTally} onMinimize={() => setTallyOpen(false)}
               header={status ? <button class={`session-banner ${status.due ? 'due' : ''}`} onClick={() => go('session')}>{status.text}</button> : undefined} />
           : tab === 'home' ? <HomeScreen data={data} baseline={baseline} plan={plan} drills={drills} tallies={tallies} games={games} notes={notes} imports={imports}
               lastBackup={lastBackup} activeTally={activeTally} session={session} onGo={go} onPlay={openScorer}

@@ -712,3 +712,32 @@ details.card > summary { font-size: 1.02rem; }
 .played { margin: 0 0 10px; }
 .table-fields { margin-top: 6px; }
 .rules ol { margin: 6px 0 0; padding-left: 22px; display: grid; gap: 4px; }
+
+/* ---------- progressive tap drills (stroke drills): large, glanceable ---------- */
+.prog { display: grid; gap: 10px; margin-top: 10px; }
+.prog-level { display: grid; gap: 4px; }
+.prog-chip { justify-self: start; font-weight: 800; font-size: 1.05rem; padding: 4px 12px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); }
+.prog-setup summary { font-weight: 600; cursor: pointer; }
+.prog-phase { display: grid; justify-items: center; gap: 0; padding: 8px; border-radius: 14px; background: #0d1418; color: #eef3f6; }
+.prog-phase .muted { color: #b9c7d0 !important; }
+.prog-phase-name { font-size: clamp(1.5rem, 7vw, 2.2rem); font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
+.prog-phase-count { font-size: clamp(2.6rem, 13vw, 4.2rem); font-weight: 800; line-height: 1; }
+.prog-makes { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+.prog-makes.n3 > :first-child { grid-column: 1 / -1; }
+.prog-makes.n1 { grid-template-columns: 1fr; }
+.prog-btn { min-height: 72px; font-size: 1.2rem; font-weight: 800; justify-content: center; text-align: center; white-space: normal; line-height: 1.15; }
+.prog-btn.good { border: 3px solid var(--good); }
+.prog-btn.best { border: 3px solid var(--good); background: color-mix(in srgb, var(--good) 16%, var(--card)); }
+.prog-btn.side { border: 3px solid var(--warn); }
+.prog-miss { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.prog-btn.miss { border: 3px solid var(--bad); min-height: 64px; }
+.prog-unsure { justify-content: center; min-height: 46px; font-weight: 700; }
+.prog-stats { color: var(--ink-2); }
+.prog-coach { margin: 0; padding-left: 18px; color: var(--ink-2); }
+.prog-done { display: grid; gap: 8px; border: 3px solid var(--good); }
+.prog-done-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
+.prog-done-grid div { display: grid; }
+.prog-done-grid b { font-size: 2rem; line-height: 1.1; }
+.prog-done-grid span { font-size: 0.9rem; color: var(--ink-2); }
+.prog-verdict { font-weight: 700; font-size: 1.05rem; margin: 4px 0; }
+.prog-panel { margin-bottom: 10px; }

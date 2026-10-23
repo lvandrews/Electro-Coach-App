@@ -1,3 +1,4 @@
+import { summarize } from '../engine/progressive';
 import { useMemo, useState } from 'preact/hooks';
 import type { AppData } from '../app';
 import type { DrillDef } from '../engine/drills';
@@ -30,6 +31,9 @@ export function activities(data: AppData, tallies: TallySession[], games: Game[]
       const c = completionSummary(t, d.ballsPerRack ?? 9);
       detail = c.racks ? `${c.completed} of ${plural(c.racks, 'rack')} run out${c.shotsAttempted ? `, ${pct(c.makes / c.shotsAttempted)} of shots made` : ''}` : '';
       if (c.learning) detail += `${detail ? ' · ' : ''}${plural(c.learning, 'learning rack')}`;
+    } else if (d?.prog) {
+      const sm = summarize(d.prog, t);
+      detail = `${d.prog.progressive ? `Level ${t.level ?? 1}: ` : ''}${sm.makes} of ${sm.attempts} made, quality ${sm.qualityPct == null ? '–' : pct(sm.qualityPct)}${sm.complete ? '' : ' (unfinished)'}`;
     } else if (d?.counters === 'diagnostic') {
       let m = 0, a = 0;
       for (const b of Object.values(diagnosticCounts(t))) for (const sd of ['L', 'R'] as const) { m += b[sd].make; a += b[sd].make + b[sd].thick + b[sd].thin; }

@@ -105,6 +105,16 @@ ends), then run them one at a time on one phone:
 <tr><td align="center" valign="top" width="33%"><img src="docs/screenshots/06-drills.jpg" width="240" alt="Drill library"><br><sub>Drill library</sub></td><td align="center" valign="top" width="33%"><img src="docs/screenshots/07-drill.jpg" width="240" alt="Transitions-1: diagram, tag, how racks end"><br><sub>Transitions-1: diagram, tag, how racks end</sub></td><td align="center" valign="top" width="33%"><img src="docs/screenshots/08-tally.jpg" width="240" alt="Tapping a Transitions rack"><br><sub>Tapping a Transitions rack</sub></td></tr>
 </table>
 
+**Stroke drills.** Four straight-in drills, tapped shot by shot with large buttons, each with
+three levels set by cue ball distance: **Mid-table stop shots** (15 balls across the table,
+stop shots), the **X-drill** (30 makes: 10 follow, 10 stop, 10 draw), **Center table follow**
+and **Center table draw** (sets of 10, with a right- or left-handed set-up). Misses are tapped
+left or right (or "not sure") and repeated until made; each make records its quality (followed
+in, stopped within a ball's radius, drawn back to the rail or into the corner) and any drift.
+A set scores make % and quality %. Two sets in a row at 80% made and 70% quality move you up a
+level; two in a row under 70% made or 50% quality move you down (one bad day never does). The
+thresholds are adjustable, and you can always set the level yourself.
+
 **Drills and tallies.** Every drill has a diagram, its Railbird tag with a copy button, set-up
 notes and a target. Most drills need no taps; Railbird records the shots. Transitions drills
 take one entry per rack (ran out, or the ball where it ended and why: missed, or out of line);

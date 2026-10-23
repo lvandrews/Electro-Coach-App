@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { AppData, Tab } from '../app';
 import {
   BUILTIN_DRILLS, CATEGORY_HINT, CATEGORY_LABEL, layoutSnippet, matchDrill, newTransitionsDrill,
@@ -9,6 +9,9 @@ import { TABLE, snapTo } from '../engine/table';
 import { saveTextFile } from '../platform';
 import { DiagramKey, TableDiagram } from './TableDiagram';
 import { fmtDate, fmtTime, int, pct, plural } from './format';
+import { requiredMakes, summarize, verdictOf, type LevelState, type Thresholds } from '../engine/progressive';
+import { drillLevel, getHand, getOverride, getThresholds, onProgPrefs, setHand, setLevel, setThresholds } from './progPrefs';
+import { levelDiagram } from './ProgressiveTally';
 
 export interface DrillsProps {
   data: AppData;
@@ -29,7 +32,7 @@ export interface DrillsProps {
   onOpenScorer: () => void;
 }
 
-const ORDER: DrillCategory[] = ['transitions', 'runout', 'reps', 'calibration'];
+const ORDER: DrillCategory[] = ['stroke', 'transitions', 'runout', 'reps', 'calibration'];
 
 interface DrillSession { sessionId: number; start: string; shots: number; kept: number; makes: number }
 
@@ -62,7 +65,7 @@ export function DrillsScreen(p: DrillsProps) {
   return (
     <section>
       <h2>Drills</h2>
-      <p class="lede">Set up from the diagram, copy the tag into Railbird, and play; Transitions and test drills also have a tap counter.</p>
+      <p class="lede">Set up from the diagram and tap each shot on the phone. Drills Railbird can film have a tag to copy; stroke drills adjust their level from your results.</p>
       {active && (
         <div class="notice good row" style={{ alignItems: 'center' }}>
           <span>{active.drillName} tally in progress ({plural(active.events.length, 'tap')}).</span>
@@ -85,14 +88,14 @@ export function DrillsScreen(p: DrillsProps) {
                 const lastIso = [ss[0]?.start, ts[0]?.started].filter(Boolean).sort().pop();
                 return (
                   <button key={d.id} class="drill-card" onClick={() => setOpenId(d.id)}>
-                    <TableDiagram spec={d.diagram} title={`${d.name} layout`} showLabels={false} />
+                    <TableDiagram spec={d.prog ? levelDiagram(d.prog, drillLevel(d, p.tallies).level) : d.diagram} title={`${d.name} layout`} showLabels={false} />
                     <div class="drill-card-text">
                       <div class="drill-name">{d.name}{d.short && <span class="type">{d.short}</span>}</div>
                       <div class="small muted">
                         {d.railbirdBuiltIn ? 'Railbird drill mode' : d.tags.map(t => t.value).join(', ')}
                       </div>
                       <div class="small">
-                        {d.counters === 'completion' ? 'Tap per rack' : d.counters === 'diagnostic' ? 'Tap per shot' : 'No taps'}
+                        {d.counters === 'completion' ? 'Tap per rack' : d.counters === 'diagnostic' ? 'Tap per shot' : d.counters === 'progressive' ? `Tap per shot${d.prog?.progressive ? ` · Level ${drillLevel(d, p.tallies).level}` : ''}` : 'No taps'}
                         {' · '}{lastIso ? `last ${fmtDate(lastIso, { day: 'numeric', month: 'short' })}` : 'not recorded yet'}
                       </div>
                     </div>
@@ -144,8 +147,13 @@ interface DetailProps extends DrillsProps { drill: DrillDef; sessions: DrillSess
 function DrillDetail(p: DetailProps) {
   const d = p.drill;
   const [editing, setEditing] = useState(false);
+  const [, bump] = useState(0);
+  useEffect(() => onProgPrefs(() => bump(v => v + 1)), []);
   const tallies = p.tallies.filter(t => t.drillId === d.id);
-  const pathKinds = [...new Set((d.diagram?.paths ?? []).map(x => x.kind))];
+  const lvl = d.prog ? drillLevel(d, p.tallies) : null;
+  const [view, setView] = useState<number | null>(null);
+  const shown = d.prog ? levelDiagram(d.prog, view ?? lvl!.level) : d.diagram;
+  const pathKinds = [...new Set((shown?.paths ?? []).map(x => x.kind))];
 
   return (
     <section>
@@ -158,17 +166,23 @@ function DrillDetail(p: DetailProps) {
           {editing
             ? <LayoutEditor drill={d} onCancel={() => setEditing(false)} onSave={async spec => { await p.onSaveLayout(d.id, spec); setEditing(false); }} />
             : <>
-                <TableDiagram spec={d.diagram} title={`${d.name} layout`} maxWidth={340} />
+                {d.prog && d.prog.levels.length > 1 && <div class="seg" role="group" aria-label="Show level" style={{ marginBottom: '6px' }}>
+                  {d.prog.levels.map((l, i) => <button key={i} aria-pressed={(view ?? lvl!.level) === i + 1} onClick={() => setView(i + 1)}>{l.label}</button>)}
+                </div>}
+                <TableDiagram spec={shown} title={`${d.name} layout`} maxWidth={340} />
+                {d.prog && <p class="small" style={{ margin: '4px 0' }}>{d.prog.levels[(view ?? lvl!.level) - 1]?.cue}</p>}
                 <DiagramKey kinds={pathKinds} />
                 <div class="row">
                   {d.editableLayout && <button class="btn btn-s" onClick={() => setEditing(true)}>{d.diagram ? 'Edit layout' : 'Set the layout'}</button>}
-                  {d.diagram && <CopyLayout id={d.id} spec={d.diagram} />}
+                  {d.diagram && !d.prog && <CopyLayout id={d.id} spec={d.diagram} />}
                 </div>
               </>}
         </div>
 
         <div class="drill-text">
-          <div class="panel-title" style={{ marginTop: 0 }}>Railbird tag</div>
+          {d.prog && <LevelPanel drill={d} tallies={tallies} state={lvl!} />}
+          <div class="panel-title" style={{ marginTop: d.prog ? undefined : 0 }}>Railbird tag</div>
+          {d.counters === 'progressive' && !d.railbirdBuiltIn && <p class="small muted" style={{ margin: '0 0 4px' }}>Only needed on days you film it; the taps are the record.</p>}
           {d.railbirdBuiltIn
             ? <p style={{ margin: '2px 0 8px' }}>Use Railbird's built-in drill mode (<code>{d.railbirdBuiltIn}</code>). No tag needed.</p>
             : <div class="tag-list">{d.tags.map(t => <CopyTag key={t.value} value={t.value} label={t.label} />)}</div>}
@@ -190,7 +204,7 @@ function DrillDetail(p: DetailProps) {
             <div style={{ marginTop: '14px' }}>
               {p.activeTallyId && p.tallies.find(t => t.id === p.activeTallyId)?.drillId === d.id
                 ? <button class="btn primary" onClick={p.onResumeTally}>Return to tally</button>
-                : <button class="btn primary" disabled={!!p.activeTallyId} onClick={() => p.onStartTally(d)}>Start tally</button>}
+                : <button class="btn primary" disabled={!!p.activeTallyId} onClick={() => p.onStartTally(d)}>{d.counters === 'progressive' ? 'Start a set' : 'Start tally'}</button>}
               {p.activeTallyId && p.tallies.find(t => t.id === p.activeTallyId)?.drillId !== d.id && <span class="small muted"> Finish the other tally first.</span>}
             </div>
           )}
@@ -296,6 +310,19 @@ function RackEnds({ drill, tallies }: { drill: DrillDef; tallies: TallySession[]
 }
 
 function TallySummary({ drill, t }: { drill: DrillDef; t: TallySession }) {
+  if (drill.prog) {
+    const sm = summarize(drill.prog, t);
+    const m = sm.misses;
+    return (
+      <p class="num" style={{ margin: '4px 0' }}>
+        {drill.prog.progressive && <>Level {t.level ?? 1} · </>}{sm.makes} of {sm.attempts} made ({pct(sm.makePct)}), quality {pct(sm.qualityPct)}
+        {sm.best > 0 && <>, {sm.best} {drill.prog.bestLabel ?? 'best'}</>}
+        {!sm.complete && <> · unfinished ({sm.makes} of {requiredMakes(drill.prog)} makes)</>}
+        {(m.L + m.R + m.thick + m.thin) > 0 && <> · misses {drill.prog.missKind === 'lr' ? `${m.L} left, ${m.R} right` : `${m.thick} thick, ${m.thin} thin`}</>}
+        {(sm.drift.L + sm.drift.R) > 0 && <> · drift {sm.drift.L}L {sm.drift.R}R</>}
+      </p>
+    );
+  }
   if (drill.counters === 'completion') {
     const c = completionSummary(t, drill.ballsPerRack ?? 9);
     const parts = [
@@ -464,5 +491,76 @@ function Transfer(p: DrillsProps) {
         </div>
       )}
     </details>
+  );
+}
+
+// ---------- progressive drills: level, history per level, thresholds ----------
+
+function LevelPanel({ drill, tallies, state }: { drill: DrillDef; tallies: TallySession[]; state: LevelState }) {
+  const spec = drill.prog!;
+  const th = getThresholds(drill.id);
+  const [editTh, setEditTh] = useState(false);
+  const done = tallies.filter(t => t.ended && summarize(spec, t).complete).sort((a, b) => (a.ended! < b.ended! ? 1 : -1));
+  const at = (lv: number) => done.filter(t => (t.level ?? 1) === lv);
+  const ov = getOverride(drill.id);
+  return (
+    <div class="card prog-panel">
+      {spec.progressive ? <>
+        <div class="row" style={{ alignItems: 'baseline' }}>
+          <h3 style={{ margin: 0 }}>Your level: {state.level}{state.mastered ? ' · mastered' : ''}</h3>
+          <span class="small muted">{state.good ? `${state.good} of 2 at the move-up bar` : state.poor ? `${state.poor} poor set${state.poor === 1 ? '' : 's'} in a row` : ''}</span>
+        </div>
+        <p class="small muted" style={{ margin: '4px 0 8px' }}>
+          Move up after two sets in a row at {Math.round(100 * th.upMake)}% made and {Math.round(100 * th.upQuality)}% quality. Move down after two in a row under {Math.round(100 * th.downMake)}% made or {Math.round(100 * th.downQuality)}% quality. One bad day never moves you down.
+          {state.changed && <> Last move: Level {state.changed.from} → {state.changed.to} on {fmtDate(state.changed.at, { day: 'numeric', month: 'short' })}.</>}
+        </p>
+        <div class="row" style={{ gap: '6px', alignItems: 'center' }}>
+          <span class="small">Set the level yourself:</span>
+          <div class="seg" role="group" aria-label="Set level">
+            {spec.levels.map((l, i) => <button key={i} aria-pressed={state.level === i + 1} onClick={() => setLevel(drill.id, i + 1)}>{i + 1}</button>)}
+          </div>
+        </div>
+        {ov && <p class="small muted" style={{ margin: '4px 0 0' }}>Set by hand on {fmtDate(ov.at, { day: 'numeric', month: 'short' })}; sets since then count from there.</p>}
+      </> : <h3 style={{ margin: 0 }}>Your sets</h3>}
+
+      {done.length > 0 && <div class="scroll-x"><table class="tally-table compact" style={{ marginTop: '8px' }}>
+        <thead><tr>{spec.progressive && <th>Level</th>}<th class="n">Sets</th><th class="n">Last made</th><th class="n">Last quality</th><th class="n">Best quality</th></tr></thead>
+        <tbody>{(spec.progressive ? spec.levels.map((_, i) => i + 1) : [1]).map(lv => {
+          const ts = spec.progressive ? at(lv) : done;
+          if (!ts.length) return null;
+          const last = summarize(spec, ts[0]);
+          const bestQ = Math.max(...ts.map(t => summarize(spec, t).qualityPct ?? 0));
+          return <tr key={lv}>{spec.progressive && <td>{lv}</td>}<td class="n">{ts.length}</td><td class="n">{pct(last.makePct)}</td><td class="n">{pct(last.qualityPct)}</td><td class="n">{pct(bestQ)}</td></tr>;
+        })}</tbody>
+      </table></div>}
+      {done.length > 0 && spec.progressive && <p class="small muted" style={{ margin: '4px 0 0' }}>Last set: {(() => { const v = verdictOf(summarize(spec, done[0]), th); return v === 'good' ? 'at the move-up bar' : v === 'poor' ? 'below the bar' : 'in between'; })()}.</p>}
+
+      {spec.handed && <div class="row" style={{ gap: '6px', alignItems: 'center', marginTop: '8px' }}>
+        <span class="small">You play</span>
+        <div class="seg" role="group" aria-label="Handedness">
+          <button aria-pressed={getHand() === 'R'} onClick={() => setHand('R')}>Right-handed</button>
+          <button aria-pressed={getHand() === 'L'} onClick={() => setHand('L')}>Left-handed</button>
+        </div>
+      </div>}
+
+      {spec.progressive && <details style={{ marginTop: '8px' }} open={editTh} onToggle={e => setEditTh((e.target as HTMLDetailsElement).open)}>
+        <summary class="small">Adjust the thresholds</summary>
+        <ThresholdFields value={th} onChange={v => setThresholds(drill.id, v)} />
+        <button class="btn btn-s" onClick={() => setThresholds(drill.id, null)}>Restore 80 / 70 and 70 / 50</button>
+      </details>}
+    </div>
+  );
+}
+
+function ThresholdFields({ value, onChange }: { value: Thresholds; onChange: (v: Thresholds) => void }) {
+  const f = (k: keyof Thresholds, label: string) => (
+    <label class="small">{label}<select value={String(Math.round(100 * value[k]))} onChange={e => onChange({ ...value, [k]: Number((e.target as HTMLSelectElement).value) / 100 })}>
+      {[40, 50, 60, 65, 70, 75, 80, 85, 90, 95].map(n => <option key={n} value={n}>{n}%</option>)}</select></label>
+  );
+  return (
+    <div class="note-form" style={{ margin: '8px 0' }}>
+      {f('upMake', 'Move up: made at least')}{f('upQuality', 'and quality at least')}
+      {f('downMake', 'Move down: made under')}{f('downQuality', 'or quality under')}
+    </div>
   );
 }

@@ -8,7 +8,7 @@ import { matchDrill, type DiagKey, type DrillDef, type Side } from './drills';
 // Completion drills: 'complete' = ran out; 'missed' = missed ball N; 'outOfLine' =
 // abandoned on ball N without shooting it (position lost). 'ended' is the earlier
 // reason-less form ("run ended at ball N"), still read for old tallies.
-export type TallyKey = DiagKey | 'complete' | 'missed' | 'outOfLine' | 'ended';
+export type TallyKey = DiagKey | 'complete' | 'missed' | 'outOfLine' | 'ended' | 'miss';
 
 export interface TallyEvent {
   t: string;            // ISO timestamp of the tap
@@ -17,6 +17,8 @@ export interface TallyEvent {
   side?: Side;
   ball?: number;        // completion drills: the ball the rack ended on (1…N)
   learning?: true;      // played with ball in hand on every shot: kept out of the drill's stats
+  res?: string;         // progressive drills: the outcome tapped (or the miss direction)
+  ph?: string;          // progressive drills: the phase (follow / stop / draw …)
 }
 
 export interface TallySession {
@@ -30,6 +32,8 @@ export interface TallySession {
   events: TallyEvent[];
   note?: string;
   learning?: boolean;   // the Learning (ball in hand) switch, as last set
+  level?: number;       // progressive drills: the level played (1–3)
+  variant?: string;     // drills with variants: e.g. the speed for basic stop shots
 }
 
 export interface TallyFile {

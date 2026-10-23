@@ -1,10 +1,11 @@
 import shipped from '../drills/layouts.json';
-import { POCKETS, SPOTS, TABLE, along, cueBallPath, cutAngle, ghostBall, pocketRay, type Pt, type PocketId } from './table';
+import { POCKETS, SPOTS, TABLE, cueBallPath, cutAngle, ghostBall, pocketRay, type Pt, type PocketId } from './table';
+import type { MakeOutcome, ProgSpec } from './progressive';
 
 // ---------- types ----------
 
-export type DrillCategory = 'transitions' | 'runout' | 'reps' | 'calibration';
-export type CounterLevel = 'none' | 'completion' | 'diagnostic';
+export type DrillCategory = 'stroke' | 'transitions' | 'runout' | 'reps' | 'calibration';
+export type CounterLevel = 'none' | 'completion' | 'diagnostic' | 'progressive';
 export type DiagKey = 'make' | 'thick' | 'thin' | 'rail' | 'pocket';
 export type Side = 'L' | 'R';
 
@@ -45,6 +46,7 @@ export interface DrillDef {
   custom?: boolean;
   scorer?: 'bowling';              // scored with its own scorer instead of tapped
   learning?: string;               // how to start out on a hard drill (shown above the set-up)
+  prog?: ProgSpec;                 // progressive tap drills: levels, phases and outcomes
 }
 
 const LEARNING = 'This drill is hard. Start by taking ball in hand on every shot, placing the cue ball where your position should have left it, until the patterns feel familiar. Start logging racks once you can regularly get through several balls.';
@@ -165,19 +167,8 @@ export const SPOT_ZONES_DIAGRAM: DiagramSpec = {
   notes: ['Green: within 15° of the pocket-through-spot line (≈75%). Amber: 15–45° (≈55–60%). Mirror for the other corner.'],
 };
 
-// X-drill: layout inferred from Lela's Railbird X-drill shots (median OB→pocket 24″,
-// CB→OB 53″, cut ≈ 2°): straight-in along the diagonals.
+// The table diagonal the straight-in stroke drills use.
 const DIAG_TL_BR: Pt[] = [POCKETS.TL, POCKETS.BR];
-const DIAG_TR_BL: Pt[] = [POCKETS.TR, POCKETS.BL];
-const X_OB = along(POCKETS.TL, POCKETS.BR, 24), X_CB = along(POCKETS.TL, POCKETS.BR, 24 + 2.25 + 53);
-const xdrill: DiagramSpec = {
-  balls: [ob(X_OB), cb(X_CB)],
-  paths: [
-    { kind: 'guide', points: DIAG_TL_BR }, { kind: 'guide', points: DIAG_TR_BL },
-    { kind: 'aim', points: [X_CB, ghostBall(X_OB, POCKETS.TL)] }, { kind: 'ob', points: [X_OB, POCKETS.TL] },
-  ],
-  notes: ['Drawn from your Railbird X-drill shots: object ball about 24″ from the pocket, cue ball about 53″ behind, straight in. Edit if your set-up differs.'],
-};
 
 const MR = POCKETS.MR;
 const SIDE: [number, Pt, Pt][] = [
@@ -215,9 +206,149 @@ const bowling: DiagramSpec = {
   notes: ['Ten balls racked on the foot spot; break from the kitchen.'],
 };
 
+// ---------- stroke drills (Lela's definitions) ----------
+
+const D = TABLE.diamond;
+/** A point `d` inches further from `pocket` than `obP`, on the line from the pocket through the object ball. */
+function behind(obP: Pt, pocket: Pt, d: number): Pt {
+  const dx = obP[0] - pocket[0], dy = obP[1] - pocket[1];
+  const k = d / Math.abs(dy || 1);              // distances are measured along the long rail
+  return [obP[0] + dx * k, obP[1] + dy * k];
+}
+/** Straight-in shot with the follow and draw lines the stroke drills ask for. */
+function straightIn(cbP: Pt, obP: Pt, pk: PocketId, opts: { follow?: boolean; draw?: Pt | null; stop?: boolean } = {}): DiagramPath[] {
+  const g = ghostBall(obP, POCKETS[pk]);
+  const out: DiagramPath[] = [{ kind: 'aim', points: [cbP, g] }, { kind: 'ob', points: [obP, POCKETS[pk]] }];
+  if (opts.follow) out.push({ kind: 'roll', points: [g, POCKETS[pk]], label: 'follow' });
+  if (opts.draw) out.push({ kind: 'draw', points: [g, opts.draw], label: 'draw' });
+  return out;
+}
+
+const X_OB2: Pt = [D, 100 - 2 * D];                              // 1 diamond off the long rail, 2 off the short rail
+const X_CB_LEVELS: Pt[] = [[25, 50], [2.5 * D, 100 - 5 * D], [50 - D, 2 * D]];
+const xLevel = (i: number): DiagramSpec => ({
+  balls: [ob(X_OB2), cb(X_CB_LEVELS[i], `L${i + 1}`)],
+  paths: [{ kind: 'guide', points: DIAG_TL_BR }, ...straightIn(X_CB_LEVELS[i], X_OB2, 'TL', { follow: true, draw: X_CB_LEVELS[i] })],
+  notes: ['Straight in along the diagonal. 10 follow, 10 stop, 10 draw.'],
+});
+
+const MID_R = TABLE.ballR;
+const MID_X: number[] = (() => {
+  const outer = MID_R + 2 * MID_R * 0.5 + MID_R;                // half a ball off the cushion
+  const step = (25 - outer) / 7;
+  return Array.from({ length: 15 }, (_, i) => 25 + (i - 7) * step);
+})();
+const midLevel = (i: number): DiagramSpec => {
+  const d = (i + 1) * D;
+  const ex: [number, PocketId][] = [[MID_X[13], 'BR'], [MID_X[7], 'BR'], [MID_X[1], 'BL']];
+  return {
+    balls: [...MID_X.map(x => ob([x, 50])), ...ex.map(([x, pk]) => cb(behind([x, 50], POCKETS[pk], d)))],
+    paths: ex.flatMap(([x, pk]) => straightIn(behind([x, 50], POCKETS[pk], d), [x, 50], pk)),
+    notes: [`Examples for three of the balls. Each cue ball sits ${i + 1} diamond${i ? 's' : ''} back (measured along the long rail) on the line from the pocket through the ball.`],
+  };
+};
+
+const CT_OB: Pt = [25, 50];
+const ctLevel = (i: number, kind: 'follow' | 'draw'): DiagramSpec => {
+  const c: Pt = [25 - ((i + 1) * D) / 2, 50 + (i + 1) * D];
+  return {
+    balls: [ob(CT_OB), cb(c, `L${i + 1}`)],
+    paths: [{ kind: 'guide', points: DIAG_TL_BR }, ...straightIn(c, CT_OB, 'BR', kind === 'follow' ? { follow: true } : { draw: POCKETS.TL })],
+    notes: [kind === 'follow' ? 'Follow the cue ball into the same corner.' : 'Draw the cue ball straight back into the opposite corner.', 'Shown for a right-handed player (cue ball on the left); left-handed is the mirror image.'],
+  };
+};
+
+const STOP_OUTCOMES = (p: string): MakeOutcome[] => [
+  { id: `${p}stop`, label: 'Stopped', quality: 'good' },
+  { id: `${p}dl`, label: 'Drifted left', drift: 'L' },
+  { id: `${p}dr`, label: 'Drifted right', drift: 'R' },
+];
+const DRAW_OUTCOMES = (p: string): MakeOutcome[] => [
+  { id: `${p}made`, label: 'Made' },
+  { id: `${p}rail`, label: 'Drew back to the rail', quality: 'good' },
+  { id: `${p}in`, label: 'Drew into the corner', quality: 'best' },
+];
+const STRAIGHT_COACHING = ['Stay relaxed and keep the cue on a straight line.', 'Tension shows up immediately as a miss.', 'Follow through.'];
+
+const X_PROG: ProgSpec = {
+  progressive: true, missKind: 'lr', bestLabel: 'with the cue ball pocketed (followed or drawn in)',
+  levels: [
+    { label: 'Level 1', cue: 'Cue ball at the center of the table.', diagram: xLevel(0) },
+    { label: 'Level 2', cue: 'Cue ball one diamond further back on the diagonal: 2½ diamonds off the long rail, 5 from the short rail.', diagram: xLevel(1) },
+    { label: 'Level 3', cue: 'Cue ball at the mirror spot of the object ball: 1 diamond off the other long rail, 2 off the far short rail.', diagram: xLevel(2) },
+  ],
+  phases: [
+    { id: 'follow', name: 'Follow', makes: 10, outcomes: [{ id: 'f-made', label: 'Made' }, { id: 'f-in', label: 'Cue ball followed in', quality: 'best' }] },
+    { id: 'stop', name: 'Stop', makes: 10, outcomes: STOP_OUTCOMES('s-') },
+    { id: 'draw', name: 'Draw', makes: 10, outcomes: DRAW_OUTCOMES('d-') },
+  ],
+};
+const MID_PROG: ProgSpec = {
+  progressive: true, missKind: 'lr',
+  levels: [0, 1, 2].map(i => ({ label: `Level ${i + 1}`, cue: [`Cue ball 1 diamond back from each ball.`, 'Cue ball 2 diamonds back (the head string).', 'Cue ball 3 diamonds back. Very difficult.'][i], diagram: midLevel(i) })),
+  phases: [{ id: 'stop', name: 'Stop', makes: 15, outcomes: STOP_OUTCOMES('m-') }],
+};
+const ctProg = (kind: 'follow' | 'draw'): ProgSpec => ({
+  progressive: true, missKind: 'lr', handed: true, coaching: STRAIGHT_COACHING, bestLabel: 'cue ball pocketed',
+  levels: [0, 1, 2].map(i => ({ label: `Level ${i + 1}`, cue: `Cue ball ${i + 1} diamond${i ? 's' : ''} back on the diagonal, measured along the long rail.`, diagram: ctLevel(i, kind) })),
+  phases: [{
+    id: kind, name: kind === 'follow' ? 'Follow' : 'Draw', makes: 10,
+    outcomes: kind === 'follow'
+      ? [{ id: 'cf-made', label: 'Made' }, { id: 'cf-rail', label: 'Followed to the rail', quality: 'good' }, { id: 'cf-in', label: 'Followed in', quality: 'best' }]
+      : DRAW_OUTCOMES('cd-'),
+  }],
+});
+
+const STROKE_DRILLS: DrillDef[] = [
+  {
+    id: 'midtable-stops', name: 'Mid-table stop shots', category: 'stroke', tags: [{ value: 'ec-midtable-stops' }], aliases: ['centerline drill', 'mid-table stop'],
+    diagram: midLevel(0), counters: 'progressive', prog: MID_PROG,
+    setup: [
+      'All 15 balls on the line between the side pockets: one on the center spot, then seven spread evenly toward each side pocket. The outermost ball sits about half a ball off the long rail, not frozen to it.',
+      'Ball in hand every shot: straight in, stop shot. Any ball, any order. Balls on the right go in the right corner, balls on the left in the left corner; the center ball in either.',
+      'Shoot from the head side toward the foot corners (either direction works). The cue ball goes on the line from the pocket through the ball, 1, 2 or 3 diamonds back by level, measured along the long rail.',
+      'A stop counts when the cue ball stops within one ball radius; note any drift left or right. A miss is repeated until it’s made.',
+    ],
+    target: { text: '15 makes per set, one per ball.', unit: 'makes' },
+  },
+  {
+    id: 'xdrill', name: 'X-drill', category: 'stroke', tags: [], railbirdBuiltIn: 'drillx-shot', aliases: ['drillx-shot', 'drill x-shot', 'x-drill', 'mighty x'],
+    diagram: xLevel(0), counters: 'progressive', prog: X_PROG,
+    setup: [
+      'Object ball one diamond off the long rail and two diamonds from the short rail; straight into that corner along the diagonal.',
+      'Cue ball by level: the center of the table, one diamond further back, or the mirror spot of the object ball.',
+      '30 makes: 10 follow (ideally the cue ball follows it in), 10 stop (within one ball radius; note drift left or right), 10 draw (note a draw back to the rail, or straight into the opposite corner).',
+      'A miss is repeated until it’s made. It covers all three spins, so it’s the minimum stroke warm-up.',
+      "When filming, Railbird's built-in X-shot drill mode still identifies it.",
+    ],
+    target: { text: '30 makes per set: 10 follow, 10 stop, 10 draw.', unit: 'makes' },
+  },
+  {
+    id: 'center-follow', name: 'Center table follow', category: 'stroke', tags: [{ value: 'ec-center-follow' }], aliases: ['center table follow'],
+    diagram: ctLevel(0, 'follow'), counters: 'progressive', prog: ctProg('follow'),
+    setup: [
+      'One ball on the center spot. Shoot it straight along the diagonal into a corner of your choice and follow the cue ball into the same pocket.',
+      'Right-handed players put the cue ball on the left side of the table, left-handed players on the right. Cue ball 1, 2 or 3 diamonds back by level, measured along the long rail.',
+      'Note made, followed to the rail, or followed in. Re-spot after each shot; a miss is repeated until it’s made.',
+    ],
+    target: { text: 'Sets of 10 makes.', unit: 'makes' },
+  },
+  {
+    id: 'center-draw', name: 'Center table draw', category: 'stroke', tags: [{ value: 'ec-center-draw' }], aliases: ['center table draw', 'longest shot'],
+    diagram: ctLevel(0, 'draw'), counters: 'progressive', prog: ctProg('draw'),
+    setup: [
+      'One ball on the center spot. Shoot it straight along the diagonal into a corner of your choice and draw the cue ball straight back to the opposite corner.',
+      'Right-handed players put the cue ball on the left side of the table, left-handed players on the right. Cue ball 1, 2 or 3 diamonds back by level, measured along the long rail. Level 3 is quite advanced.',
+      'Note made, drawn back to the rail, or drawn into the corner (it must go in). Re-spot after each shot; a miss is repeated until it’s made.',
+    ],
+    target: { text: 'Sets of 10 makes.', unit: 'makes' },
+  },
+];
+
 // ---------- the registry ----------
 
 const DRILL_DEFS: DrillDef[] = [
+  ...STROKE_DRILLS,
   {
     id: 'transitions-1', name: 'Transitions-1', category: 'transitions',
     tags: [{ value: 'ec-transitions-1' }], aliases: ['pool kata bassai 9 ball', 'pool kata', 'kata'],
@@ -240,12 +371,6 @@ const DRILL_DEFS: DrillDef[] = [
       'An offensive drill: it measures how far you get through a rack, so run-out planning and position decide it.',
     ],
     target: { text: 'Score each game with the scorer (Open the scorer below). Watch the average of your last five.', unit: 'racks' },
-  },
-  {
-    id: 'xdrill', name: 'X-drill', category: 'reps', tags: [], railbirdBuiltIn: 'drillx-shot', aliases: ['drillx-shot', 'drill x-shot', 'x-drill'],
-    diagram: xdrill, editableLayout: true, counters: 'none',
-    setup: ['Straight-in shots along both diagonals.', "Use Railbird's built-in X-shot drill mode."],
-    target: { text: '20 recorded shots minimum, 25+ per session. Read the trend over 6+ sessions.', minimum: 20, unit: 'shots' },
   },
   {
     id: 'spot', name: 'Spot shot', category: 'reps', tags: [], railbirdBuiltIn: 'drillspot-shot', aliases: ['drillspot-shot', 'drill spot-shot', 'spot shot'],
@@ -333,9 +458,10 @@ export function layoutSnippet(drillId: string, spec: DiagramSpec): string {
 }
 
 export const CATEGORY_LABEL: Record<DrillCategory, string> = {
-  transitions: 'Transitions', runout: 'Run-out drill', reps: 'Reps', calibration: 'Calibration',
+  stroke: 'Stroke drills', transitions: 'Transitions', runout: 'Run-out drill', reps: 'Reps', calibration: 'Calibration',
 };
 export const CATEGORY_HINT: Record<DrillCategory, string> = {
+  stroke: 'Straight-in stroke work, tapped shot by shot. Three levels each; the app moves you up or down from your results.',
   transitions: 'Pattern drills: ball-to-ball position. Measured by completion.',
   runout: 'Full racks, scored like bowling. Set aside time to finish all ten frames.',
   reps: 'Fixed single-shot drills. Measured by make % from Railbird.',

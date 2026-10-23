@@ -124,7 +124,7 @@ function EndFields({ b, onChange }: { b: RunBlock; onChange: (p: Partial<RunBloc
     {b.end !== 'time' && <label>Count<span class="stepper">
       <input type="number" min={1} value={b.count ?? 5} onInput={e => onChange({ count: Math.max(1, Number((e.target as HTMLInputElement).value) || 1) })} style={{ width: '70px' }} />
       <select value={b.unit ?? 'racks'} onChange={e => onChange({ unit: (e.target as HTMLSelectElement).value as CountUnit })}>
-        <option value="racks">racks</option><option value="shots">shots</option><option value="games">games</option></select></span></label>}
+        <option value="racks">racks</option><option value="shots">shots</option><option value="makes">makes</option><option value="games">games</option></select></span></label>}
   </>;
 }
 
